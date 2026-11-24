@@ -2,21 +2,36 @@ import AppKit
 import DrawBotCore
 import DrawBotSystem
 
-/// Calls `then` once the user has let go of ⌃⌥⌘⇧ (or after `deadline`). Synthetic events
-/// inherit held modifiers, which would turn clicks into ⌘-clicks and typing into shortcuts.
+/// Calls `then` once the user has let go of ⌃⌥⌘⇧ and no click or key press has happened for
+/// `quiet` seconds (or after `deadline`).
+///
+/// * Synthetic events inherit held modifiers, which would turn clicks into ⌘-clicks and typing
+///   into shortcuts.
+/// * Many apps ignore input while a dialog or popup is still animating closed (PaintZ ignores
+///   its colour button for about a second after its dialog closes). If the click that opens the
+///   picker is lost, every following click lands on whatever is underneath — often the canvas.
 @MainActor
 enum ModifierWait {
-    static func whenReleased(deadline: Date, _ then: @escaping () -> Void) {
+    static func whenReleased(quiet: TimeInterval = 0, deadline: Date, _ then: @escaping () -> Void) {
         let held = NSEvent.modifierFlags.intersection([.control, .option, .command, .shift])
-        if held.isEmpty || Date() > deadline {
+        if (held.isEmpty && secondsSinceLastClickOrKey() >= quiet) || Date() > deadline {
             then()
             return
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-            MainActor.assumeIsolated { whenReleased(deadline: deadline, then) }
+            MainActor.assumeIsolated { whenReleased(quiet: quiet, deadline: deadline, then) }
         }
     }
+
+    /// Seconds since the last mouse button or key event anywhere (including DrawBot's own).
+    static func secondsSinceLastClickOrKey() -> TimeInterval {
+        let types: [CGEventType] = [.leftMouseDown, .leftMouseUp, .rightMouseDown, .rightMouseUp, .keyDown, .keyUp]
+        return types.map { CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: $0) }.min() ?? .infinity
+    }
 }
+
+/// Quiet time before replaying a learned colour picker (see `ModifierWait`).
+let pickerQuietPeriod: TimeInterval = 1.5
 
 /// One Colour Learn lesson:
 ///
@@ -259,7 +274,7 @@ final class ColorLearnSession {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                 MainActor.assumeIsolated {
                     guard let self, self.token == t else { return }
-                    ModifierWait.whenReleased(deadline: Date().addingTimeInterval(5)) { [weak self] in
+                    ModifierWait.whenReleased(quiet: pickerQuietPeriod, deadline: Date().addingTimeInterval(5)) { [weak self] in
                         guard let self, self.token == t else { return }
                         self.replayer.careful = self.target.careful
                         self.replayer.stopOnUserMouseMove = true

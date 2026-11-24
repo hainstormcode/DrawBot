@@ -306,6 +306,23 @@ learner on it, replay the result into the app, and read back the colour it ended
 |---|---|---|---|
 | [Sumo Paint](https://paint.sumo.app/) | Popover over the canvas: hue ring around a saturation × brightness square, hex field | Clicking ring and square | Green within 3 RGB units; black, white and red exact |
 | Sumo Paint | Same popover | Triple-click the hex field, type `#` + hex, Return | Exact |
+| [PaintZ](https://paintz.app/) | Modal dialog over the canvas: saturation × value square, vertical hue strip, Save button | Clicking strip and square | Green and purple within 1 RGB unit |
+| PaintZ | Same dialog | Triple-click R, type R, Tab, G, Tab, B, Tab, then Save | Exact (PaintZ itself rounds one channel by 1) |
+
+What those tests turned up, and what changed because of it:
+
+- **Pickers that pop up over the canvas.** Both apps do this. DrawBot used to throw away every
+  click inside the canvas, so it never saw the picker being used. It now keeps them, drops test
+  strokes, and checks that each demonstration opens and closes the picker.
+- **Colours at the edge of a control.** A press "just inside" the estimated edge of Sumo Paint's
+  square landed on its hue ring instead, because the estimate came from imprecise human
+  clicks. DrawBot now presses well inside and drags out, approaching the edge in 1-pt steps.
+- **Triple clicks reported as three single clicks** (by some event sources) lost the
+  select-all before typing. DrawBot now counts quick presses on one spot itself.
+- **Dialogs that ignore clicks while they animate.** PaintZ drops the click on its colour
+  button for about a second after its dialog closes, so the picker never opened and the replay
+  went nowhere. DrawBot now waits for 1.5 s without clicks or key presses before it replays a
+  picker, and keeps more of the pauses you left between steps.
 
 ## Known limitations
 
@@ -315,4 +332,9 @@ learner on it, replay the result into the app, and read back the colour it ended
   continuous to fit. Hex fields, sliders, squares, wheels and hue rings can.
 - Browser paint apps all share one app ID (the browser's), so DrawBot keeps one learned picker
   per browser, not per website.
+- DrawBot can't see whether a picker actually opened. It relies on timing, and on you closing
+  the picker at the end of each demonstration.
+- A hue strip is assumed to have its red seam at the ends. PaintZ's sits 15° in from the
+  bottom, so in PaintZ, reds within about 15° of pure red come out slightly orange when the
+  picker was taught by clicking. Teach it by typing values to get them exact.
 - macOS only. It relies on Quartz event posting and the macOS window list.

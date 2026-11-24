@@ -112,4 +112,64 @@ final class RecordedPickerTests: XCTestCase {
         let typed = acts.compactMap { a -> String? in if case .key(let k) = a { return k.characters } else { return nil } }.joined()
         XCTAssertEqual(typed, "#50b369\r")
     }
+
+    // MARK: PaintZ (paintz.app)
+    //
+    // A modal "Colors" dialog over the canvas, opened by the colour button at (763,49) and closed
+    // with Save at (783,527). Primary picker: a 256 × 256 saturation × value square at (214,138.5)
+    // and a 32-pt hue strip at x 474–506. The strip is linear but offset: hue = 360·f + 15°, so
+    // its red seam is 4% from the bottom, not at an end. Its number fields are HSV and R, G, B.
+
+    let paintzCanvas = CGRect(x: 15, y: 128, width: 640, height: 480)
+    let paintzButton = CGPoint(x: 763, y: 49)
+    let paintzSave = CGPoint(x: 783, y: 527)
+
+    func paintzColor(strip: CGPoint, square: CGPoint) -> RGB {
+        let f = min(max((Double(strip.y) - 138.5) / 256, 0), 1)
+        let s = min(max((Double(square.x) - 214) / 256, 0), 1) * 100
+        let v = (1 - min(max((Double(square.y) - 138.5) / 256, 0), 1)) * 100
+        return ColorMath.rgb(hue: (360 * f + 15).truncatingRemainder(dividingBy: 360), saturation: s, brightness: v)
+    }
+
+    // Recorded: open, hue strip, square, Save — the user aimed by watching the preview swatch.
+    func testPaintZHueStripAndSquareByClicking() throws {
+        let d1 = clicks(paintzButton, at: 112.40) + clicks(CGPoint(x: 490, y: 149), at: 113.41)
+            + clicks(CGPoint(x: 419, y: 164), at: 113.92) + clicks(paintzSave, at: 114.44)
+        let d2 = clicks(paintzButton, at: 115.46) + clicks(CGPoint(x: 490, y: 277), at: 116.48)
+            + clicks(CGPoint(x: 304, y: 279), at: 117.00) + clicks(paintzSave, at: 117.51)
+        let profile = try ColorLearner.learn(demos: [ColorDemo(color: a, inputs: d1), ColorDemo(color: b, previousColor: a, inputs: d2)],
+                                             canvas: paintzCanvas, screens: screen, appKey: "paintz", appName: "PaintZ").get()
+        XCTAssertEqual(profile.space, .hsb)
+        XCTAssertTrue(profile.summary.contains("hue slider"), profile.summary)
+        // Measured in the app: green → #4fb269, purple → #a24eb2. Check the model agrees for a spread
+        // of colours away from the strip's red seam.
+        for test in [RGB(r: 0x50, g: 0xB3, b: 0x69), RGB(r: 0xA3, g: 0x4F, b: 0xB3), ColorMath.rgb(hue: 200, saturation: 70, brightness: 40)] {
+            let pts = profile.actions(for: test, previous: nil).compactMap { a -> CGPoint? in
+                if case .drag(_, let to, _, _) = a { return to } else { return nil }
+            }
+            XCTAssertEqual(pts.count, 2)
+            let got = paintzColor(strip: pts[0], square: pts[1])
+            XCTAssertLessThanOrEqual(ColorMath.deltaE(got, test), 5, "\(test.hex) → \(got.hex)")
+        }
+        // The dialog needs ~0.6 s after opening before it takes clicks; the user waited ~1 s, and
+        // DrawBot must keep most of that.
+        let waits = profile.actions(for: a, previous: nil).compactMap { a -> Double? in if case .wait(let t) = a { return t } else { return nil } }
+        XCTAssertGreaterThanOrEqual(waits[1], 0.75)
+    }
+
+    // Recorded: open, triple-click R (reported as three single clicks), type R Tab G Tab B Tab, Save.
+    func testPaintZRGBFieldsWithTabs() throws {
+        func demo(_ c: RGB, prev: RGB?, t: Double) -> ColorDemo {
+            ColorDemo(color: c, previousColor: prev, inputs: clicks(paintzButton, at: t) + clicks(CGPoint(x: 452, y: 422), at: t + 1, counts: [1, 1, 1])
+                      + typing("\(c.r)\t\(c.g)\t\(c.b)\t", at: t + 1.02) + clicks(paintzSave, at: t + 1.6))
+        }
+        let profile = try ColorLearner.learn(demos: [demo(a, prev: nil, t: 323), demo(b, prev: a, t: 335)],
+                                             canvas: paintzCanvas, screens: screen, appKey: "paintz", appName: "PaintZ").get()
+        XCTAssertTrue(profile.isExact)
+        XCTAssertEqual(profile.summary, "Types the colour's red value, green value and blue value, plus 3 fixed clicks.")
+        let acts = profile.actions(for: RGB(r: 0x50, g: 0xB3, b: 0x69), previous: nil)
+        XCTAssertTrue(acts.contains(.click(at: CGPoint(x: 452, y: 422), button: .left, count: 3, modifiers: [])))
+        let typed = acts.compactMap { a -> String? in if case .key(let k) = a { return k.characters } else { return nil } }.joined()
+        XCTAssertEqual(typed, "80\t179\t105\t")
+    }
 }

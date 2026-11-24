@@ -681,7 +681,7 @@ final class AppController: ObservableObject {
                         self.showPrompt()
                         return
                     }
-                    ModifierWait.whenReleased(deadline: Date().addingTimeInterval(5)) { [weak self] in
+                    ModifierWait.whenReleased(quiet: pickerQuietPeriod, deadline: Date().addingTimeInterval(5)) { [weak self] in
                         guard let self, self.passToken == token else { return }
                         self.replayer.careful = plan.speed == SpeedPreset.careful.settings
                         self.replayer.stopOnUserMouseMove = plan.pauseOnMouseMove

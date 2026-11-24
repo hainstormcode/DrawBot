@@ -81,13 +81,14 @@ public enum ColorLearner {
         guard !kept.isEmpty else {
             return .failure(Failure("The demonstrations had nothing in common. Select both colours the same way (same controls, same order)."))
         }
-        // Delays: the shortest pause the user left before each action, shortened and capped.
+        // Delays: most of the shortest pause the user left before each action, capped. Not much
+        // shorter: dialogs and popups often animate open, and a click that arrives early is lost.
         var delays: [Double] = []
         for (k, g) in kept.enumerated() {
             if k == 0 { delays.append(0.1); continue }
             let prev = kept[k - 1]
             let gap = zip(g, prev).map { $0.start - $1.end }.min() ?? 0.2
-            var d = min(max(gap * 0.6, 0.12), 0.8)
+            var d = min(max(gap * 0.8, 0.15), 1.2)
             if case .keys = g[0], case .gesture = prev[0] { d = max(d, 0.15) }
             delays.append(d)
         }

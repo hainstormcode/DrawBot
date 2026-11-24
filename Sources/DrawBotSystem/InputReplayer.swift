@@ -160,7 +160,7 @@ private struct ReplayInterrupt: Error {
     let reason: String
 }
 
-private final class ReplayWorker {
+final class ReplayWorker {
     let sink: ReplayEventSink
     let detectMove: Bool
     let pace: Double
@@ -209,9 +209,11 @@ private final class ReplayWorker {
                         sink.sleep(0.01 * pace)
                         post(dragType, to, button, 1, mods)
                     } else {
-                        let steps = max(1, Int((len / 3).rounded(.up)))
-                        for s in 1...steps {
-                            let f = CGFloat(s) / CGFloat(steps)
+                        // 3-pt steps, then 1-pt steps for the last 10 pt: pickers that stop
+                        // tracking once the pointer leaves the control keep the last position
+                        // inside it, which is then within a point of the edge.
+                        for d in Self.dragDistances(length: len) {
+                            let f = CGFloat(d / len)
                             post(dragType, CGPoint(x: from.x + (to.x - from.x) * f, y: from.y + (to.y - from.y) * f), button, 1, mods)
                             sink.sleep(0.006 * pace)
                             if let reason = stopRequested() { throw ReplayInterrupt(reason: reason) }
@@ -240,6 +242,19 @@ private final class ReplayWorker {
             release()
             return .stopped(reason: "Stopped")
         }
+    }
+
+    /// Distances along a drag of `length` at which to post drag events (the last one is `length`).
+    static func dragDistances(length: Double) -> [Double] {
+        guard length > 0 else { return [] }
+        let fineFrom = max(0, length - 10)
+        var out: [Double] = []
+        var d = 0.0
+        while d + 3 < fineFrom { d += 3; out.append(d) }
+        if d < fineFrom { d = fineFrom; out.append(d) }
+        while d + 1 < length { d += 1; out.append(d) }
+        out.append(length)
+        return out
     }
 
     private func release() {

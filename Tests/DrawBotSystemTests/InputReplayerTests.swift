@@ -54,6 +54,17 @@ final class InputReplayerTests: XCTestCase {
         XCTAssertEqual(sink.keys.count, 2)
     }
 
+    func testDragApproachesTheEndInFineSteps() {
+        let sink = RecordingReplaySink()
+        XCTAssertEqual(run([.drag(from: CGPoint(x: 0, y: 0), to: CGPoint(x: 40, y: 0), button: .left, modifiers: [])], sink: sink), .completed)
+        let xs = sink.mouse.filter { $0.0 == .leftMouseDragged }.map { Double($0.1.x) }
+        XCTAssertEqual(xs.last, 40)
+        // Coarse early on, never more than 1 pt apart over the last 10 pt.
+        XCTAssertLessThan(xs.count, 25)
+        for (a, b) in zip(xs, xs.dropFirst()) where a >= 30 { XCTAssertLessThanOrEqual(b - a, 1.0001) }
+        XCTAssertEqual(ReplayWorker.dragDistances(length: 2.5), [1, 2, 2.5])
+    }
+
     func testMouseMoveStopsAndReleases() {
         let sink = RecordingReplaySink()
         sink.onKey = { _ in sink.cursorOverride = CGPoint(x: 500, y: 500) }   // the user grabs the mouse
@@ -75,3 +86,4 @@ final class InputReplayerTests: XCTestCase {
         XCTAssertTrue(sink.keys.isEmpty)
     }
 }
+
