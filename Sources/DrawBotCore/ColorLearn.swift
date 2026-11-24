@@ -371,6 +371,19 @@ public struct LinearMap: Codable, Equatable, Sendable {
         return pos
     }
 
+    /// Margin kept from the estimated ends when pressing: the map is fitted to approximate
+    /// human clicks, so its ends can be several points off the real control's edges, and a
+    /// press just outside lands on a neighbouring control.
+    var safeInset: Double { max(5, 0.06 * extent) }
+
+    /// The coordinate for `c`, moved inside the control by `safeInset` if it's closer to an end.
+    func safeCoordinate(for c: RGB) -> Double {
+        let iv = interval
+        let pos = offset + slope * param.value(of: c)
+        let m = min(safeInset, (iv.hi - iv.lo) / 2)
+        return min(max(pos, iv.lo + m), iv.hi - m)
+    }
+
     var interval: (lo: Double, hi: Double) {
         let a = offset, b = offset + slope * param.range
         return (min(a, b), max(a, b))
@@ -389,6 +402,16 @@ public struct PolarMap: Codable, Equatable, Sendable {
     public var direction: Double
 
     var scale: Double { (wRe * wRe + wIm * wIm).squareRoot() }
+
+    /// Like `point(for:push: 0)`, but with the radius kept `max(5 pt, 6%)` inside the rim.
+    func safePoint(for c: RGB) -> CGPoint {
+        guard let rp = radius else { return point(for: c, push: 0) }
+        let limit = max(0, 1 - max(5, 0.06 * scale) / max(1, scale))
+        let h = ColorParam.hue.value(of: c) * .pi / 180 * direction
+        let r = min(rp.value(of: c) / rp.range, limit)
+        let zr = r * cos(h), zi = r * sin(h)
+        return CGPoint(x: centreX + wRe * zr - wIm * zi, y: centreY + wRe * zi + wIm * zr)
+    }
 
     func point(for c: RGB, push: Double) -> CGPoint {
         let h = ColorParam.hue.value(of: c) * .pi / 180 * direction
@@ -425,6 +448,22 @@ public enum ControlMapping: Codable, Equatable, Sendable {
             return CGPoint(x: mx.coordinate(for: c, push: push), y: my.coordinate(for: c, push: push))
         case .polar(let pm):
             return pm.point(for: c, push: push)
+        }
+    }
+
+    /// Where to press for `c`: on target, but never within the safety margin of the control's
+    /// estimated edges (the drag then carries on to the exact target).
+    public func safePoint(for c: RGB) -> CGPoint {
+        switch self {
+        case .fixed(let p):
+            return p
+        case .axis(let axis, let map, let other):
+            let v = map.safeCoordinate(for: c)
+            return axis == .x ? CGPoint(x: v, y: other) : CGPoint(x: other, y: v)
+        case .plane(let mx, let my):
+            return CGPoint(x: mx.safeCoordinate(for: c), y: my.safeCoordinate(for: c))
+        case .polar(let pm):
+            return pm.safePoint(for: c)
         }
     }
 
@@ -473,11 +512,13 @@ public struct PointerStep: Codable, Equatable, Sendable {
             }
             return .click(at: p, button: button, count: max(1, clickCount), modifiers: modifiers)
         default:
-            // A short drag onto the target: pickers that act on mouse-down get (almost) the exact
-            // spot, pickers that track the drag clamp onto the extreme when the target is at an edge.
+            // Press safely inside the control (the fitted edges are only approximate), then drag
+            // onto the target. Pickers that act on mouse-down get the exact spot for anything not
+            // near an edge; pickers that track the drag (most) end exactly on target, and clamp
+            // onto the extreme when the target is at an edge (we overshoot it slightly).
             let target = mapping.point(for: c, push: 4)
             let knob = grabsKnob ? previous.map { mapping.point(for: $0) } : nil
-            let start = knob ?? mapping.point(for: c, push: -1.5)
+            let start = knob ?? mapping.safePoint(for: c)
             return .drag(from: start, to: target, button: button, modifiers: modifiers)
         }
     }

@@ -138,8 +138,9 @@ colours automatically (Colour Learn)** and teach it once per app.
 2. Click **Learn Colour Picker…**.
 3. DrawBot asks for an orange (#E68A2E). Select it in your app however you normally would, then
    press **Done** (⌃⌥⌘↩). While the prompt is up DrawBot records your clicks, drags, double
-   clicks, typing and pastes. It ignores clicks on the canvas, in case you dab a test stroke,
-   and anything you do in DrawBot's own panels.
+   clicks, typing and pastes. It ignores anything you do in DrawBot's own panels.
+   **If your colour picker is a popup or a dialog, open it, choose the colour, and close it
+   again before pressing Done, every time.** See [pickers that cover the canvas](#pickers-that-cover-the-canvas).
 4. It asks for a dull slate blue (#4B5F73). The two colours are deliberately chosen to sit far
    apart on any kind of picker: opposite hues, different saturation and brightness, and every
    RGB channel different. Select it the same way and press **Done**.
@@ -168,6 +169,32 @@ DrawBot compares your demonstrations step by step:
 Two demonstrations can't always tell a colour wheel from a square: two points fit either one
 perfectly. That's what the test colour and the **No** button are for. A third example rules
 out the wrong shapes, because they can't fit three points.
+
+When DrawBot replays a click-learned picker, it never presses right at the edge of a control.
+Its idea of where the edges are comes from your (slightly imprecise) clicks, and can be a few
+points off. So for colours near an edge (black, white, pure red) it presses safely inside the
+square or slider and drags out to the edge. The picker clamps the drag, so the colour comes out
+exact instead of the press landing on the hue ring next door.
+
+### Pickers that cover the canvas
+
+Lots of pickers pop up on top of the drawing area: web apps like Sumo Paint, floating dialogs,
+popovers. DrawBot handles them, with one rule: **every demonstration has to start with the
+picker closed and end with it closed again.** DrawBot checks for other apps' windows covering
+the canvas before it draws, but it can't see a popup inside the drawing app's own window. A
+picker left open would get painted on.
+
+DrawBot spots the two common slips and tells you what happened instead of learning something
+broken:
+
+- You opened the picker for the first colour and left it open, so the second demonstration
+  never opened it.
+- The picker was still open when you pressed Done.
+
+Clicks on the canvas count as picker clicks when they set the colour, or when they hit the same
+spot every time (an OK button, say). Drags and stray dabs on the canvas that don't change the
+colour are treated as test strokes and never replayed. Still, it's cleaner not to paint while
+teaching.
 
 ### Tips for teaching
 
@@ -250,6 +277,7 @@ without touching the real mouse:
 | `Sources/DrawBotCore` | Pure logic, no AppKit: image loading, colour maths, k-means quantisation, stroke planning, time estimates, and Colour Learn's analysis (`ColorLearn.swift` for the data types, `ColorLearner.swift` for the learning). |
 | `Sources/DrawBotSystem` | The macOS layer: synthetic mouse events and the drawing engine, the Colour Learn input replayer, permissions, global hotkeys, window inspection, app activation. |
 | `Sources/DrawBot` | The app itself: menu-bar item, control panel (SwiftUI), canvas selection overlay, prompts, progress display, Test Canvas, the input recorder, and the Colour Learn lesson flow. |
+| `Tools` | Developer tools for Colour Learn: a page recorder for web paint apps and `colorlearn-harness`, which runs the learner on recorded demonstrations. See [Tools/README.md](Tools/README.md). |
 
 `SPEC.md` is the original design spec, which goes into coordinate systems, focus rules and the
 drawing engine's timing in more detail.
@@ -263,8 +291,21 @@ swift test
 The Core tests include simulated users teaching simulated colour pickers: a Photoshop-style
 square and hue strip, RGB sliders, a macOS-style colour wheel, hex fields, RGB fields with a
 typo fixed by backspace, and pasting. They check that DrawBot picks the right explanation and
-lands within a few RGB units of the target colour. The System tests drive the drawing engine
-and the replayer against a fake event sink, so nothing moves your real mouse.
+lands within a few RGB units of the target colour.
+
+`RecordedPickerTests` replays real demonstrations recorded in web paint apps, including the
+mistakes that used to break the learner. The System tests drive the drawing engine and the
+replayer against a fake event sink, so nothing moves your real mouse.
+
+## Pickers it has been tested on
+
+These were tested with the tools in `Tools/`: record a demonstration in the real app, run the
+learner on it, replay the result into the app, and read back the colour it ended up with.
+
+| App | Picker | Taught by | Result |
+|---|---|---|---|
+| [Sumo Paint](https://paint.sumo.app/) | Popover over the canvas: hue ring around a saturation × brightness square, hex field | Clicking ring and square | Green within 3 RGB units; black, white and red exact |
+| Sumo Paint | Same popover | Triple-click the hex field, type `#` + hex, Return | Exact |
 
 ## Known limitations
 

@@ -11,6 +11,8 @@ let package = Package(
         .target(name: "DrawBotSystem", dependencies: ["DrawBotCore"], path: "Sources/DrawBotSystem"),
         // The menu-bar app: UI, canvas selection overlay, colour prompts, orchestration.
         .executableTarget(name: "DrawBot", dependencies: ["DrawBotCore", "DrawBotSystem"], path: "Sources/DrawBot"),
+        // Dev tool: runs Colour Learn on recorded demonstrations (JSON in, JSON out). See Tools/README.md.
+        .executableTarget(name: "colorlearn-harness", dependencies: ["DrawBotCore"], path: "Tools/ColorLearnHarness"),
         .testTarget(name: "DrawBotCoreTests", dependencies: ["DrawBotCore"], path: "Tests/DrawBotCoreTests"),
         .testTarget(name: "DrawBotSystemTests", dependencies: ["DrawBotSystem", "DrawBotCore"], path: "Tests/DrawBotSystemTests"),
     ]

@@ -43,15 +43,17 @@ public enum ColorLearner {
     /// Distance (pt) within which a pointer gesture counts as "the same spot" in every demo.
     static let fixedTolerance = 10.0
 
-    /// Learns a profile from `demos` (≥ 2). `excludeRect` is the canvas (presses there are
-    /// ignored); `screens` are the displays' CG frames (for plausibility checks). Interpretations
-    /// whose `hypothesisKey` is in `rejected` are skipped.
-    public static func learn(demos: [ColorDemo], excludeRect: CGRect?, screens: [CGRect], appKey: String,
+    /// Learns a profile from `demos` (≥ 2). `canvas` is where DrawBot will draw: colour pickers
+    /// often pop up on top of it, so presses there are NOT ignored, but a picker that covers the
+    /// canvas must be closed again at the end of every demonstration (otherwise DrawBot would
+    /// draw into it). `screens` are the displays' CG frames (for plausibility checks).
+    /// Interpretations whose `hypothesisKey` is in `rejected` are skipped.
+    public static func learn(demos: [ColorDemo], canvas: CGRect?, screens: [CGRect], appKey: String,
                              appName: String, rejected: Set<String> = [], now: Date = Date()) -> Result<ColorPickerProfile, Failure> {
         guard demos.count >= 2 else { return .failure(Failure("DrawBot needs at least two demonstrations.")) }
-        let actionLists = demos.map { segment($0.inputs, excludeRect: excludeRect) }
+        let actionLists = demos.map { segment($0.inputs) }
         for (i, list) in actionLists.enumerated() where list.isEmpty {
-            return .failure(Failure("DrawBot didn't see any clicks or typing outside the canvas for colour \(i + 1) (\(demos[i].color.hex))."))
+            return .failure(Failure("DrawBot didn't see any clicks or typing for colour \(i + 1) (\(demos[i].color.hex))."))
         }
 
         // Reference: the demo with the fewest actions (latest on ties); align the rest to it.
@@ -60,11 +62,18 @@ public enum ColorLearner {
         let order = [ref] + actionLists.indices.filter { $0 != ref }
         var groups: [[Action]] = actionLists[ref].map { [$0] }
         var keep = Array(repeating: true, count: groups.count)
+        var matches: [Int: [Int?]] = [:]
         for d in order.dropFirst() {
             let match = align(actionLists[ref], actionLists[d])
+            matches[d] = match
             for i in groups.indices {
                 if let j = match[i] { groups[i].append(actionLists[d][j]) } else { keep[i] = false }
             }
+        }
+        // Which of each demo's actions survive (are part of a kept group).
+        var keptIndices: [Int: Set<Int>] = [ref: Set(groups.indices.filter { keep[$0] })]
+        for d in order.dropFirst() {
+            keptIndices[d] = Set(groups.indices.filter { keep[$0] }.compactMap { matches[d]![$0] })
         }
         let colors = order.map { demos[$0].color }
         let previous = order.map { demos[$0].previousColor }
@@ -72,7 +81,6 @@ public enum ColorLearner {
         guard !kept.isEmpty else {
             return .failure(Failure("The demonstrations had nothing in common. Select both colours the same way (same controls, same order)."))
         }
-
         // Delays: the shortest pause the user left before each action, shortened and capped.
         var delays: [Double] = []
         for (k, g) in kept.enumerated() {
@@ -110,6 +118,11 @@ public enum ColorLearner {
             spreads[k] = maxPairwise(gestures.map(\.up))
         }
         let varying = obsByGroup.keys.filter { (spreads[$0] ?? 0) > fixedTolerance }.sorted()
+        // Gestures that land on the canvas in every demo. Colour pickers often pop up over the
+        // canvas, so these may be picker clicks — or test strokes the user painted.
+        let onCanvas = Set(obsByGroup.keys.filter { k in canvas.map { c in obsByGroup[k]!.allSatisfy { c.contains($0.up) } } ?? false })
+        // Not using a moving control costs less when it's on the canvas (probably a test stroke).
+        let fixedPenalties = varying.map { k in onCanvas.contains(k) ? min(spreads[k]! / 12, 1) : spreads[k]! / 12 }
         let bounds = screens.isEmpty ? nil : screens.dropFirst().reduce(screens[0]) { $0.union($1) }
 
         var best: Hypothesis?
@@ -130,7 +143,7 @@ public enum ColorLearner {
                 guard typedParams.isSubset(of: Set(space.params)) else { continue }
                 let needed = Set(space.params).subtracting(typedParams)
                 let controls = varying.map { obsByGroup[$0]! }
-                all += search(controls: controls, spreads: varying.map { spreads[$0]! }, space: space,
+                all += search(controls: controls, fixedPenalties: fixedPenalties, space: space,
                               needed: needed, bounds: bounds, typedCount: typedParams.count)
             }
             for i in all.indices {
@@ -144,12 +157,30 @@ public enum ColorLearner {
             return .failure(Failure("DrawBot couldn't work out how this colour picker turns positions into colours. Typing the hex code into the picker's hex field always works, if your app has one."))
         }
 
+        // Canvas gestures that don't set the colour and aren't a button clicked on the same spot
+        // every time (drags, dabs that moved) are test strokes: never replay them.
+        func isColorControl(_ k: Int) -> Bool {
+            guard let vi = varying.firstIndex(of: k) else { return false }
+            return hyp.fits[vi] != nil
+        }
+        var testStrokes = Set<Int>()
+        for k in onCanvas where !isColorControl(k) {
+            let obs = obsByGroup[k]!
+            if obs.filter(\.isDrag).count * 2 > obs.count || spreads[k]! > fixedTolerance { testStrokes.insert(k) }
+        }
+        let pickerOverCanvas = !onCanvas.subtracting(testStrokes).isEmpty
+        if pickerOverCanvas, let problem = checkPickerOverCanvas(
+            kept: kept, lastIsColorControl: kept.indices.last(where: { !testStrokes.contains($0) }).map(isColorControl) ?? false,
+            actionLists: actionLists, order: order, keptIndices: keptIndices, canvas: canvas!) {
+            return .failure(Failure(problem))
+        }
+
         // Build the profile in the reference demo's order.
         var steps: [PickerStep] = []
         var describeParts: [String] = []
         var fixedClicks = 0
         var allPoints: [CGPoint] = []
-        for (k, g) in kept.enumerated() {
+        for (k, g) in kept.enumerated() where !testStrokes.contains(k) {
             if let t = typingSteps[k] {
                 steps.append(.typing(t.step))
                 continue
@@ -246,13 +277,12 @@ public enum ColorLearner {
         e.modifiers.isSuperset(of: [.control, .option, .command])
     }
 
-    static func segment(_ inputs: [RecordedInput], excludeRect: CGRect?) -> [Action] {
+    static func segment(_ inputs: [RecordedInput]) -> [Action] {
         let sorted = inputs.enumerated().sorted { a, b in
             a.element.time != b.element.time ? a.element.time < b.element.time : a.offset < b.offset
         }.map(\.element)
         var actions: [Action] = []
         var open: Gesture?
-        var openExcluded = false
         var run: KeyRun?
 
         func flushRun() {
@@ -260,6 +290,15 @@ public enum ColorLearner {
             run = nil
         }
         func appendGesture(_ g: Gesture) {
+            var g = g
+            if case .gesture(let p)? = actions.last, p.button == g.button, !p.isDrag, !g.isDrag,
+               distance(p.up, g.down) <= 5, g.start - p.end <= 0.5 {
+                // Second / third press of a multi-click. Some event sources report every press as
+                // a single click, so count quick presses on the same spot ourselves.
+                g.clickCount = min(3, max(g.clickCount, p.clickCount + 1))
+                actions[actions.count - 1] = .gesture(g)
+                return
+            }
             if case .gesture(let p)? = actions.last, p.button == g.button, distance(p.up, g.down) <= 5 {
                 // Second press of a double/triple click, or re-clicking the same spot: keep the latest.
                 if g.clickCount >= 2 && g.start - p.end <= 0.8 {
@@ -279,9 +318,8 @@ public enum ColorLearner {
         for e in sorted {
             switch e.kind {
             case .mouseDown:
-                if let g = open, !openExcluded { appendGesture(g) }
+                if let g = open { appendGesture(g) }
                 flushRun()
-                openExcluded = excludeRect?.contains(e.point) ?? false
                 open = Gesture(button: e.button, clickCount: max(1, e.clickCount), modifiers: e.modifiers,
                                down: e.point, up: e.point, travel: 0, start: e.time, end: e.time)
             case .mouseDragged:
@@ -295,7 +333,7 @@ public enum ColorLearner {
                 g.up = e.point
                 g.travel = max(g.travel, distance(g.down, e.point))
                 g.end = e.time
-                if !openExcluded { appendGesture(g) }
+                appendGesture(g)
                 open = nil
             case .keyDown:
                 if isHotkey(e) { continue }
@@ -304,9 +342,39 @@ public enum ColorLearner {
                 run!.end = e.time
             }
         }
-        if let g = open, !openExcluded { appendGesture(g) }
+        if let g = open { appendGesture(g) }
         flushRun()
         return actions
+    }
+
+    // MARK: - Pickers on top of the canvas
+
+    /// A colour picker that pops up over the canvas (a popover, a floating dialog) must be in
+    /// the same state at the start and end of every selection, and closed at the end: DrawBot's
+    /// obstruction check cannot see a popup inside the drawing app's own window, so it would
+    /// draw straight into an open picker. Returns a message for the user when the demonstrations
+    /// show that this isn't the case.
+    static func checkPickerOverCanvas(kept: [[Action]], lastIsColorControl: Bool, actionLists: [[Action]], order: [Int],
+                                      keptIndices: [Int: Set<Int>], canvas: CGRect) -> String? {
+        // 1. Every demo must start the same way: no click of its own (off the canvas) before the
+        //    shared actions (typically: the picker was opened in one demo but was still open in
+        //    the next).
+        for d in order {
+            guard let firstKept = keptIndices[d]?.min(), firstKept > 0 else { continue }
+            let skipped = actionLists[d][0..<firstKept].contains { a in
+                if case .gesture(let g) = a { return !canvas.contains(g.up) }
+                return false
+            }
+            if skipped {
+                return "Your colour picker sits on top of the canvas, so DrawBot has to open it before every colour and close it again before drawing. In one demonstration you clicked something first (probably to open the picker) that you didn't click in the other, which usually means the picker was still open. Start over, and for every colour: start with the picker closed, open it, choose the colour, close it again, then press Done."
+            }
+        }
+        // 2. Every demo must end with the picker closed: the last shared action must be a fixed
+        //    click (a close / OK button, the toggle again) or a key (Return, Esc), not a colour control.
+        if lastIsColorControl {
+            return "Your colour picker sits on top of the canvas, but it was still open when you pressed Done. DrawBot would draw into it. Start over, and for every colour: open the picker, choose the colour, close the picker (its close or OK button, or the button that opened it), then press Done."
+        }
+        return nil
     }
 
     // MARK: - Alignment
@@ -720,7 +788,7 @@ public enum ColorLearner {
     }
 
     /// Assigns the needed parameters to controls in every possible way and scores each.
-    static func search(controls: [[Obs]], spreads: [Double], space: PickerColorSpace, needed: Set<ColorParam>,
+    static func search(controls: [[Obs]], fixedPenalties: [Double], space: PickerColorSpace, needed: Set<ColorParam>,
                        bounds: CGRect?, typedCount: Int) -> [Hypothesis] {
         let options = controls.map { fits(for: $0, space: space, bounds: bounds).filter { $0.form.params.isSubset(of: needed) } }
         var out: [Hypothesis] = []
@@ -732,7 +800,7 @@ public enum ColorLearner {
                 let used = chosen.compactMap { $0 }
                 var score = prior(space: space, fits: used, typed: typedCount > 0) + consistency(used)
                 for (k, f) in chosen.enumerated() {
-                    score += f?.score ?? -(spreads[k] / 12)
+                    score += f?.score ?? -fixedPenalties[k]
                 }
                 out.append(Hypothesis(space: space, fits: chosen, score: score, key: ""))
                 return

@@ -204,13 +204,13 @@ final class ColorLearnSession {
         let inputs = recorder.inputs
         let meaningful = inputs.contains { e in
             switch e.kind {
-            case .mouseDown: return !target.canvas.contains(e.point)
+            case .mouseDown: return true
             case .keyDown: return !e.modifiers.isSuperset(of: [.control, .option, .command])
             default: return false
             }
         }
         guard meaningful else {
-            note = "DrawBot didn't see you click or type in \(target.appName) outside the canvas yet. Select the colour there, then press Done."
+            note = "DrawBot didn't see you click or type in \(target.appName) yet. Select the colour there, then press Done."
             refreshDemo()
             return
         }
@@ -229,7 +229,7 @@ final class ColorLearnSession {
 
     private func analyze() {
         let screens = NSScreen.screens.map { ScreenUtil.cgFrame(of: $0) }
-        switch ColorLearner.learn(demos: demos, excludeRect: target.canvas, screens: screens, appKey: target.appKey,
+        switch ColorLearner.learn(demos: demos, canvas: target.canvas, screens: screens, appKey: target.appKey,
                                   appName: target.appName, rejected: rejected) {
         case .success(let p):
             candidate = p

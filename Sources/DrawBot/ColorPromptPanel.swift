@@ -265,7 +265,7 @@ struct PromptView: View {
         case .learnDemo(let recorded):
             Text("Select this colour in **\(content.appName)** the way you normally do. DrawBot is watching your clicks and typing.")
                 .font(.callout).fixedSize(horizontal: false, vertical: true)
-            Text("Typing the hex code into the picker's hex field is the most reliable (it's on the clipboard). Clicking works too: get as close as you can. Do it the same way each time, and don't paint on the canvas.")
+            Text("If the colour picker is a popup or dialog, open it, choose the colour, and close it again before pressing Done, every time. Typing the hex code into the picker's hex field is the most reliable (it's on the clipboard). Clicking works too: get as close as you can. Do it the same way each time, and don't paint on the canvas.")
                 .font(.caption).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
             if !content.note.isEmpty {
                 Text(content.note).font(.callout.weight(.semibold)).foregroundColor(.orange)
@@ -275,7 +275,7 @@ struct PromptView: View {
                 .font(.callout).fixedSize(horizontal: false, vertical: true)
             Label(recorded, systemImage: "record.circle").font(.caption).foregroundColor(.red)
         case .learnVerify:
-            Text("DrawBot just tried to select this colour by itself. Is it selected in **\(content.appName)** now?")
+            Text("DrawBot just tried to select this colour by itself. Is it selected in **\(content.appName)** now, with the colour picker closed again (nothing covering the canvas)?")
                 .font(.callout).fixedSize(horizontal: false, vertical: true)
             if !content.note.isEmpty {
                 Text(content.note).font(.callout.weight(.semibold)).foregroundColor(.orange)

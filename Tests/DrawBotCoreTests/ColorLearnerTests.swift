@@ -61,7 +61,7 @@ final class ColorLearnerTests: XCTestCase {
     }
 
     func learn(_ demos: [ColorDemo], rejected: Set<String> = []) throws -> ColorPickerProfile {
-        switch ColorLearner.learn(demos: demos, excludeRect: canvas, screens: screens, appKey: "test", appName: "Test",
+        switch ColorLearner.learn(demos: demos, canvas: canvas, screens: screens, appKey: "test", appName: "Test",
                                   rejected: rejected) {
         case .success(let p): return p
         case .failure(let f): XCTFail(f.message); throw f
@@ -140,17 +140,17 @@ final class ColorLearnerTests: XCTestCase {
 
     func testLearnsSquareAndStripWithDragsAndCorrections() throws {
         let picker = SquareAndStrip()
-        func demo(_ c: RGB, prev: RGB?) -> ColorDemo {
+        func demo(_ c: RGB, prev: RGB?, dab: CGPoint) -> ColorDemo {
             var t = 0.0
             // Rough click on the square, then a correction 5 pt away, then a drag on the strip.
             var e = click(CGPoint(x: picker.squarePoint(c).x - 5, y: picker.squarePoint(c).y + 2), at: &t)
             e += click(picker.squarePoint(c), at: &t)
             e += drag(CGPoint(x: picker.stripX, y: 260), picker.stripPoint(c), at: &t)
-            // A test dot on the canvas (ignored).
-            e += click(CGPoint(x: 200, y: 500), at: &t)
+            // A test stroke on the canvas (must not be replayed).
+            e += drag(dab, CGPoint(x: dab.x + 30, y: dab.y + 5), at: &t)
             return ColorDemo(color: c, previousColor: prev, inputs: e)
         }
-        let profile = try learn([demo(a, prev: nil), demo(b, prev: a)])
+        let profile = try learn([demo(a, prev: nil, dab: CGPoint(x: 200, y: 500)), demo(b, prev: a, dab: CGPoint(x: 120, y: 420))])
         XCTAssertEqual(profile.steps.count, 2)
         for test in ColorLearner.testColors {
             assertClose(simulate(profile.actions(for: test, previous: nil), on: picker, startingFrom: b), test)
@@ -291,7 +291,7 @@ final class ColorLearnerTests: XCTestCase {
         var t = 0.0
         let same = click(CGPoint(x: 900, y: 100), at: &t)
         let r = ColorLearner.learn(demos: [ColorDemo(color: a, inputs: same), ColorDemo(color: b, inputs: same)],
-                                   excludeRect: canvas, screens: screens, appKey: "k", appName: "K")
+                                   canvas: canvas, screens: screens, appKey: "k", appName: "K")
         guard case .failure(let f) = r else { return XCTFail("expected failure") }
         XCTAssertTrue(f.message.contains("Nothing changed"), f.message)
     }
@@ -300,7 +300,7 @@ final class ColorLearnerTests: XCTestCase {
         var t = 0.0
         let inCanvas = click(CGPoint(x: 100, y: 400), at: &t)
         let r = ColorLearner.learn(demos: [ColorDemo(color: a, inputs: inCanvas), ColorDemo(color: b, inputs: inCanvas)],
-                                   excludeRect: canvas, screens: screens, appKey: "k", appName: "K")
+                                   canvas: canvas, screens: screens, appKey: "k", appName: "K")
         guard case .failure = r else { return XCTFail("expected failure") }
     }
 
