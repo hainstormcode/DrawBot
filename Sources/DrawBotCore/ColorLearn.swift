@@ -551,6 +551,8 @@ public enum ReplayAction: Equatable, Sendable {
     case key(KeyStroke)
     case setClipboard(String)
     case wait(TimeInterval)
+    /// Move the pointer without pressing (test tooling; profiles never produce it).
+    case move(CGPoint)
 }
 
 /// How to select any colour in one app's colour picker.

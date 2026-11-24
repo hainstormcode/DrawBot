@@ -94,6 +94,43 @@ final class ColorLearnSession {
         self.replayer = replayer
         self.onLearned = onLearned
         self.onEnd = onEnd
+        log = LessonLog(appKey: target.appKey, appName: target.appName, canvas: target.canvas,
+                        screens: NSScreen.screens.map { ScreenUtil.cgFrame(of: $0) }, startedAt: Date())
+    }
+
+    // MARK: Lesson log
+
+    /// Everything that happened in this lesson, saved after every step to
+    /// ~/Library/Application Support/DrawBot/Lessons/ so a failed lesson can be diagnosed (and
+    /// replayed through colorlearn-harness).
+    struct LessonLog: Codable {
+        var appKey: String
+        var appName: String
+        var canvas: CGRect
+        var screens: [CGRect]
+        var startedAt: Date
+        var demos: [ColorDemo] = []
+        var events: [String] = []
+    }
+
+    private var log: LessonLog
+    private lazy var logURL: URL? = {
+        guard let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return nil }
+        let dir = base.appendingPathComponent("DrawBot/Lessons", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd_HH-mm-ss"
+        return dir.appendingPathComponent("lesson_\(f.string(from: log.startedAt)).json")
+    }()
+
+    private func note(_ event: String) {
+        log.events.append("\(String(format: "%.1f", Date().timeIntervalSince(log.startedAt)))s \(event)")
+        log.demos = demos
+        guard let url = logURL else { return }
+        let enc = JSONEncoder()
+        enc.outputFormatting = [.prettyPrinted, .sortedKeys]
+        enc.dateEncodingStrategy = .iso8601
+        if let data = try? enc.encode(log) { try? data.write(to: url) }
     }
 
     func begin() {
@@ -147,6 +184,7 @@ final class ColorLearnSession {
     }
 
     private func end() {
+        if !ended { note(learned == nil ? "lesson ended without a result" : "lesson finished") }
         guard !ended else { return }
         ended = true
         token += 1
@@ -232,6 +270,7 @@ final class ColorLearnSession {
         recorder.stop()
         note = ""
         demos.append(ColorDemo(color: demoColor, previousColor: demoPrevious, inputs: inputs))
+        note("demo \(demos.count) for \(demoColor.hex): \(inputs.count) inputs (\(recorder.summary))")
         pickerColor = demoColor
         if demos.count < 2 {
             startDemo(color: ColorLearner.demoColors[1], previous: demoColor)
@@ -247,9 +286,11 @@ final class ColorLearnSession {
         switch ColorLearner.learn(demos: demos, canvas: target.canvas, screens: screens, appKey: target.appKey,
                                   appName: target.appName, rejected: rejected) {
         case .success(let p):
+            note("learned: \(p.summary) [\(p.hypothesisKey)]")
             candidate = p
             tryCandidate()
         case .failure(let f):
+            note("learning failed: \(f.message)")
             showResult(success: false, message: f.message)
         }
     }
@@ -290,6 +331,7 @@ final class ColorLearnSession {
     }
 
     private func tryFinished(_ outcome: InputReplayer.Outcome, token t: Int) {
+        if token == t { note("try for \(testColor.hex): \(outcome)") }
         guard token == t, !ended else { return }
         target.watchEscape(false)
         hud.hide()
@@ -308,6 +350,7 @@ final class ColorLearnSession {
     }
 
     private func accept() {
+        note("user: yes, it worked")
         guard var p = candidate else { return }
         p.learnedAt = Date()
         learned = p
@@ -320,6 +363,7 @@ final class ColorLearnSession {
     }
 
     private func rejectCandidate() {
+        note("user: no")
         guard let candidate else { return }
         rejected.insert(candidate.hypothesisKey)
         let failed = testColor

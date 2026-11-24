@@ -13,6 +13,9 @@ let package = Package(
         .executableTarget(name: "DrawBot", dependencies: ["DrawBotCore", "DrawBotSystem"], path: "Sources/DrawBot"),
         // Dev tool: runs Colour Learn on recorded demonstrations (JSON in, JSON out). See Tools/README.md.
         .executableTarget(name: "colorlearn-harness", dependencies: ["DrawBotCore"], path: "Tools/ColorLearnHarness"),
+        // Dev tool: a separate app that plays scripted real input and records it with DrawBot's recorder.
+        // Built into build/DrawBotTestRig.app by scripts/build_testrig.sh. See Tools/README.md.
+        .executableTarget(name: "DrawBotTestRig", dependencies: ["DrawBotCore", "DrawBotSystem"], path: "Tools/TestRig"),
         .testTarget(name: "DrawBotCoreTests", dependencies: ["DrawBotCore"], path: "Tests/DrawBotCoreTests"),
         .testTarget(name: "DrawBotSystemTests", dependencies: ["DrawBotSystem", "DrawBotCore"], path: "Tests/DrawBotSystemTests"),
     ]

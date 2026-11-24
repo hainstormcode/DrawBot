@@ -6,13 +6,15 @@ import DrawBotCore
 /// permission; key events need Accessibility). DrawBot's own windows are not recorded, except
 /// those `recordsLocalWindow` accepts (the Test Canvas and its colour picker).
 @MainActor
-final class InputRecorder {
+public final class InputRecorder {
     private var monitors: [Any] = []
-    private(set) var inputs: [RecordedInput] = []
-    var recordsLocalWindow: (NSWindow?) -> Bool = { _ in false }
-    var onChange: () -> Void = {}
+    public private(set) var inputs: [RecordedInput] = []
+    public var recordsLocalWindow: (NSWindow?) -> Bool = { _ in false }
+    public var onChange: () -> Void = {}
 
-    var isRecording: Bool { !monitors.isEmpty }
+    public init() {}
+
+    public var isRecording: Bool { !monitors.isEmpty }
 
     private static let mask: NSEvent.EventTypeMask = [
         .leftMouseDown, .leftMouseUp, .leftMouseDragged,
@@ -20,7 +22,7 @@ final class InputRecorder {
         .keyDown,
     ]
 
-    func start() {
+    public func start() {
         stop()
         inputs = []
         if let g = NSEvent.addGlobalMonitorForEvents(matching: Self.mask, handler: { [weak self] e in
@@ -39,18 +41,18 @@ final class InputRecorder {
         onChange()
     }
 
-    func stop() {
+    public func stop() {
         for m in monitors { NSEvent.removeMonitor(m) }
         monitors.removeAll()
     }
 
-    func clear() {
+    public func clear() {
         inputs = []
         onChange()
     }
 
     /// "3 clicks · 7 keys"
-    var summary: String {
+    public var summary: String {
         let clicks = inputs.filter { $0.kind == .mouseDown }.count
         let keys = inputs.filter { $0.kind == .keyDown && !$0.modifiers.isSuperset(of: [.control, .option, .command]) }.count
         if clicks == 0 && keys == 0 { return "Nothing recorded yet" }
@@ -60,7 +62,7 @@ final class InputRecorder {
         return "Recorded " + parts.joined(separator: " · ")
     }
 
-    static func modifiers(_ f: NSEvent.ModifierFlags) -> KeyModifiers {
+    public static func modifiers(_ f: NSEvent.ModifierFlags) -> KeyModifiers {
         var m: KeyModifiers = []
         if f.contains(.shift) { m.insert(.shift) }
         if f.contains(.control) { m.insert(.control) }
@@ -70,7 +72,8 @@ final class InputRecorder {
     }
 
     private func record(_ e: NSEvent) {
-        let point = e.cgEvent?.location ?? ScreenUtil.toCG(CGRect(origin: NSEvent.mouseLocation, size: .zero)).origin
+        let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
+        let point = e.cgEvent?.location ?? CGPoint(x: NSEvent.mouseLocation.x, y: primaryHeight - NSEvent.mouseLocation.y)
         let mods = Self.modifiers(e.modifierFlags)
         let input: RecordedInput
         switch e.type {

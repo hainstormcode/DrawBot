@@ -232,6 +232,9 @@ final class ReplayWorker {
                 case .setClipboard(let s):
                     sink.setClipboard(s)
                     sink.sleep(0.05)
+                case .move(let p):
+                    try moveTo(p)
+                    sink.sleep(0.03 * pace)
                 }
             }
             return .completed

@@ -40,7 +40,10 @@ struct Event: Decodable {
 struct Demo: Decodable {
     var color: String
     var previous: String?
-    var events: [Event]
+    /// Page-recorder events…
+    var events: [Event]?
+    /// …or DrawBot's own recorded inputs (from the test rig).
+    var inputs: [RecordedInput]?
 }
 
 struct Session: Decodable {
@@ -124,6 +127,8 @@ func describe(_ a: ReplayAction) -> [String: Any] {
         return ["type": "clipboard", "text": s]
     case .wait(let t):
         return ["type": "wait", "seconds": t]
+    case .move(let p):
+        return ["type": "move", "x": Double(p.x), "y": Double(p.y)]
     }
 }
 
@@ -136,7 +141,7 @@ do {
     exit(2)
 }
 let demos = session.demos.map { d in
-    ColorDemo(color: rgb(d.color)!, previousColor: d.previous.flatMap(rgb), inputs: d.events.compactMap(convert))
+    ColorDemo(color: rgb(d.color)!, previousColor: d.previous.flatMap(rgb), inputs: d.inputs ?? (d.events ?? []).compactMap(convert))
 }
 let screens = rect(session.screen).map { [$0] } ?? []
 var out: [String: Any] = [:]
