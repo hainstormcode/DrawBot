@@ -1,0 +1,12 @@
+# SwiftPM / Xcode build output
+.build/
+build/
+.swiftpm/
+*.xcodeproj/xcuserdata/
+DerivedData/
+
+# Stray local binaries
+/main
+
+# macOS
+.DS_Store
