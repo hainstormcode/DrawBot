@@ -265,7 +265,7 @@ struct PromptView: View {
         case .learnDemo(let recorded):
             Text("Select this colour in **\(content.appName)** the way you normally do. DrawBot is watching your clicks and typing.")
                 .font(.callout).fixedSize(horizontal: false, vertical: true)
-            Text("If the colour picker is a popup or dialog, open it, choose the colour, and close it again before pressing Done, every time. Typing the hex code into the picker's hex field is the most reliable (it's on the clipboard). Clicking works too: get as close as you can. Do it the same way each time, and don't paint on the canvas.")
+            Text("If the colour picker is a popup or dialog, open it, choose the colour, and close it again before pressing Done, every time. Typing the colour's values (the hex code, which is on the clipboard, or R, G and B) is the most reliable. Clicking works too: get as close as you can. If what you get looks different from the swatch here, your app is changing the colour; try another way. Do it the same way each time, and don't paint on the canvas.")
                 .font(.caption).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
             if !content.note.isEmpty {
                 Text(content.note).font(.callout.weight(.semibold)).foregroundColor(.orange)
@@ -281,7 +281,7 @@ struct PromptView: View {
                 Text(content.note).font(.callout.weight(.semibold)).foregroundColor(.orange)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Text("If you answer No, DrawBot asks you to select it yourself once more and learns from that.")
+            Text("Compare it with the swatch above carefully: a slightly different shade counts as No. If you answer No, DrawBot asks you to select it yourself once more, or suggests another way to teach it.")
                 .font(.caption).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
         case .learnResult:
             EmptyView()

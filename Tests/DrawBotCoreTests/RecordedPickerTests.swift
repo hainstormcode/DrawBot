@@ -172,4 +172,19 @@ final class RecordedPickerTests: XCTestCase {
         let typed = acts.compactMap { a -> String? in if case .key(let k) = a { return k.characters } else { return nil } }.joined()
         XCTAssertEqual(typed, "80\t179\t105\t")
     }
+
+    func testTypedSlotsTellHexFromNumbers() throws {
+        let field = CGPoint(x: 676, y: 527)
+        func hexDemo(_ c: RGB, t: Double) -> ColorDemo {
+            ColorDemo(color: c, inputs: clicks(toolbarButton, at: t) + clicks(field, at: t + 1, counts: [1, 2, 3])
+                      + typing("#" + c.hexNoHash + "\r", at: t + 1.02) + clicks(toolbarButton, at: t + 1.6))
+        }
+        let hex = try learn([hexDemo(a, t: 1), hexDemo(b, t: 4)]).get()
+        XCTAssertEqual(hex.typedSlots, [.hex(uppercase: true)])
+        let clicked = try ColorLearner.learn(demos: [
+            ColorDemo(color: a, inputs: clicks(paintzButton, at: 1) + clicks(CGPoint(x: 490, y: 149), at: 2) + clicks(CGPoint(x: 419, y: 164), at: 2.5) + clicks(paintzSave, at: 3)),
+            ColorDemo(color: b, inputs: clicks(paintzButton, at: 1) + clicks(CGPoint(x: 490, y: 277), at: 2) + clicks(CGPoint(x: 304, y: 279), at: 2.5) + clicks(paintzSave, at: 3)),
+        ], canvas: paintzCanvas, screens: screen, appKey: "p", appName: "P").get()
+        XCTAssertTrue(clicked.typedSlots.isEmpty)
+    }
 }

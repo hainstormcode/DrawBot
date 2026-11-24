@@ -368,8 +368,19 @@ final class ColorLearnSession {
         rejected.insert(candidate.hypothesisKey)
         let failed = testColor
         testIndex += 1
+        // A typed profile repeats exactly what the user typed. If that gave the wrong colour,
+        // the app itself changes typed values (PaintZ turns a typed hex code 15° round the hue
+        // circle): demonstrating the same way again can't help. Suggest another way instead.
+        if candidate.isExact {
+            let typedHex = candidate.typedSlots.contains { if case .hex = $0 { return true } else { return false } }
+            let other = typedHex
+                ? "type the R, G and B values into their fields instead, or click the colour in the picker"
+                : "click the colour in the picker instead"
+            showResult(success: false, message: "DrawBot typed exactly what you typed, so \(target.appName) itself changed the colour. Some apps convert typed values wrongly; PaintZ, for example, shifts a typed hex code's hue. Start over and \(other).")
+            return
+        }
         guard demos.count < Self.maxDemos else {
-            showResult(success: false, message: "None of DrawBot's \(rejected.count) interpretations worked. If your colour picker has a hex field, select the colours by typing the hex code into it, then start over.")
+            showResult(success: false, message: "None of DrawBot's \(rejected.count) interpretations of your clicks worked. Start over and type the colour's values instead (its hex code, or R, G and B), if your colour picker has fields for them.")
             return
         }
         note = "DrawBot's try didn't work. Select this colour yourself once more so DrawBot can learn from it."

@@ -19,6 +19,29 @@ sends `mousedown`. Pointer events carry no click count. That's fine: the learner
 double and triple clicks from timing. Coordinates are the page's CSS pixels, and the learner
 only needs one consistent coordinate frame.
 
+## `DrawBotTestRig.app` (real OS-level input)
+
+A separate little app that plays scripted **real** mouse and keyboard input with DrawBot's own
+`InputReplayer`, while DrawBot's own `InputRecorder` records it. This tests the parts the browser
+tools can't: OS-level events, real drags, real keystrokes, real click counts.
+
+```sh
+./scripts/build_testrig.sh
+open -n -W build/DrawBotTestRig.app --args /path/to/script.json
+```
+
+The script format is at the top of `TestRig/main.swift` (`record`, `stop`, `play`, `move`,
+`sleep`). `play` takes the same actions `colorlearn-harness` prints, so the loop is: record two
+demonstrations with the rig, run `colorlearn-harness` on the recordings (it accepts the rig's
+`inputs` directly), and play the learned actions back with the rig.
+
+It needs its own Accessibility permission, which survives rebuilding DrawBot. **It's a
+development tool**: anything that can write a script for it can make it click and type, so
+remove its permission when you're done.
+
+To find web-page coordinates on screen, add a `pointermove` listener that records
+`clientX/screenX`, and have the rig `move` the cursor over the page.
+
 ## `colorlearn-harness`
 
 Runs DrawBot's real learner (`ColorLearner` in DrawBotCore) on recorded demonstrations and

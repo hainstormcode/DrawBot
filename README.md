@@ -263,7 +263,12 @@ hotkeys work.
 - **It pauses right away with "Mouse moved".** Hands off, or turn off *Pause if I move the
   mouse*.
 - **Colour Learn picked the wrong colour.** Answer **No** at the check and give it one more
-  example. If it still can't work your picker out, teach it by typing the hex code instead.
+  example. If you taught it by typing and the shade is still wrong, the app is changing what's
+  typed; teach it by clicking (or with different fields) instead.
+- **A lesson keeps failing.** Every lesson is logged in
+  `~/Library/Application Support/DrawBot/Lessons/`: what DrawBot recorded, what it concluded,
+  and how its try went. The log is the quickest way to see what went wrong, and
+  `Tools/colorlearn-harness` can replay it.
 - **A hotkey doesn't work.** Another app probably owns that combination; DrawBot says so in its
   panel when that happens.
 
@@ -308,6 +313,11 @@ learner on it, replay the result into the app, and read back the colour it ended
 | Sumo Paint | Same popover | Triple-click the hex field, type `#` + hex, Return | Exact |
 | [PaintZ](https://paintz.app/) | Modal dialog over the canvas: saturation × value square, vertical hue strip, Save button | Clicking strip and square | Green and purple within 1 RGB unit |
 | PaintZ | Same dialog | Triple-click R, type R, Tab, G, Tab, B, Tab, then Save | Exact (PaintZ itself rounds one channel by 1) |
+| PaintZ | Same dialog | Typing the hex code | **Doesn't work, and can't**: PaintZ shifts a typed hex code 15° round the hue circle, so even your own demonstrations come out wrong. Teach it by clicking or with the R/G/B fields. DrawBot now says so when you answer No. |
+
+The PaintZ rows were re-checked with real OS-level input: real clicks and keystrokes through
+DrawBot's own recorder and replayer, driven by the test rig in `Tools/`, not just the browser
+automation used for the first round.
 
 What those tests turned up, and what changed because of it:
 
@@ -328,6 +338,9 @@ What those tests turned up, and what changed because of it:
 
 - DrawBot draws in straight horizontal runs on a grid. It's a printer, not an artist.
 - Colour Learn remembers screen positions. If your app's colour picker moves, teach it again.
+- DrawBot can't see colours. If an app changes the value you type (PaintZ does this with hex
+  codes), DrawBot types it the same way and gets the same wrong colour. The check step catches
+  this, and DrawBot then suggests teaching another way.
 - Pickers that only offer a fixed palette of swatches can't be learned. There's nothing
   continuous to fit. Hex fields, sliders, squares, wheels and hue rings can.
 - Browser paint apps all share one app ID (the browser's), so DrawBot keeps one learned picker

@@ -591,6 +591,19 @@ public struct ColorPickerProfile: Codable, Equatable, Sendable {
         self.isExact = isExact
     }
 
+    /// The colour values this profile types or pastes (empty for a click-only profile).
+    public var typedSlots: [ValueSlot] {
+        steps.flatMap { step -> [ValueSlot] in
+            guard case .typing(let t) = step else { return [] }
+            return t.pieces.flatMap { piece -> [ValueSlot] in
+                switch piece {
+                case .key: return []
+                case .text(let tpl), .paste(let tpl, _): return tpl.slots
+                }
+            }
+        }
+    }
+
     /// The input that selects `color`. `previous` is the colour the picker currently shows, if
     /// known (needed for pickers whose knob must be grabbed and dragged).
     public func actions(for color: RGB, previous: RGB?) -> [ReplayAction] {
