@@ -13,10 +13,10 @@ public enum TimeEstimator {
     }
 
     /// Estimated wall-clock seconds the DrawingEngine needs for `strokes` at `speed`
-    /// (moveDelay + downDelay + ceil(length/stepSize) drag events * eventDelay + upDelay per stroke,
+    /// (moveDelay + downDelay + ceil(length/stepSize) drag events * eventDelay + endDelay + upDelay per stroke,
     /// plus ~0.15 ms per posted event of overhead).
     public static func estimate(_ strokes: [ScreenStroke], speed: SpeedSettings) -> TimeInterval {
-        let fixed = speed.moveDelay + speed.downDelay + speed.upDelay
+        let fixed = speed.moveDelay + speed.downDelay + speed.endDelay + speed.upDelay
         var total = 0.0
         for s in strokes {
             let drags = dragEventCount(s, stepSize: speed.stepSize)

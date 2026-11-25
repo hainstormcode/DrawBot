@@ -15,6 +15,8 @@ import DrawBotSystem
 //   { "cmd": "play", "actions": [Action] }      replay actions (format of colorlearn-harness output)
 //   { "cmd": "move", "x": .., "y": .. }         move the pointer (CG global points)
 //   { "cmd": "sleep", "seconds": .. }
+//   { "cmd": "draw", "strokes": [[x1,y1,x2,y2]…], "clamp": [x,y,w,h], "speed": SpeedSettings }
+//                                               draw with DrawBot's real DrawingEngine
 // Action: { "type": "click"|"drag"|"key"|"clipboard"|"wait"|"move", … } — see decodeAction.
 //
 // It needs its own Accessibility permission (System Settings → Privacy & Security →
@@ -33,6 +35,10 @@ struct Command: Decodable {
     var x: Double?
     var y: Double?
     var actions: [[String: JSONValue]]?
+    /// draw: strokes as [x1, y1, x2, y2], the clamp rectangle [x, y, w, h], and the timing.
+    var strokes: [[Double]]?
+    var clamp: [Double]?
+    var speed: SpeedSettings?
 }
 
 enum JSONValue: Decodable {
@@ -67,6 +73,7 @@ final class Rig {
     let script: Script
     let recorder = InputRecorder()
     let replayer = InputReplayer()
+    let engine = DrawingEngine(speed: .normal)
     var recordings: [String: [RecordedInput]] = [:]
     var log: [String] = []
 
@@ -94,6 +101,21 @@ final class Rig {
             play([.move(CGPoint(x: c.x ?? 0, y: c.y ?? 0))], then: next)
         case "play":
             play((c.actions ?? []).compactMap(decodeAction), then: next)
+        case "draw":
+            let strokes = (c.strokes ?? []).filter { $0.count == 4 }.map {
+                ScreenStroke(start: CGPoint(x: $0[0], y: $0[1]), end: CGPoint(x: $0[2], y: $0[3]))
+            }
+            let r = c.clamp ?? [0, 0, 10000, 10000]
+            engine.speed = c.speed ?? .normal
+            engine.pauseOnUserMouseMove = false
+            let started = Date()
+            engine.draw(strokes: strokes, clampRect: CGRect(x: r[0], y: r[1], width: r[2], height: r[3]), progress: { _ in },
+                        completion: { [weak self] outcome in
+                MainActor.assumeIsolated {
+                    self?.log.append("draw \(strokes.count) strokes in \(String(format: "%.2f", Date().timeIntervalSince(started)))s: \(outcome)")
+                    next()
+                }
+            })
         default:
             log.append("unknown command \(c.cmd)")
             next()

@@ -42,4 +42,21 @@ final class TimeEstimatorTests: XCTestCase {
         let l = TimeEstimator.estimate(strokes, speed: .ludicrous)
         XCTAssertGreaterThan(c, n); XCTAssertGreaterThan(n, f); XCTAssertGreaterThan(f, l)
     }
+
+    func testEndDelayAdaptsToTheScreensRefreshRate() {
+        // Never shorter than one refresh (plus margin), never shorter than the preset's minimum.
+        XCTAssertEqual(SpeedSettings.ludicrous.adapted(toRefreshRate: 60).endDelay, 1.15 / 60, accuracy: 1e-9)
+        XCTAssertEqual(SpeedSettings.ludicrous.adapted(toRefreshRate: 120).endDelay, 1.15 / 120, accuracy: 1e-9)
+        XCTAssertEqual(SpeedSettings.careful.adapted(toRefreshRate: 120).endDelay, 0.025, accuracy: 1e-9)
+        XCTAssertEqual(SpeedSettings.normal.adapted(toRefreshRate: 0).endDelay, SpeedSettings.normal.endDelay)
+        for preset in SpeedPreset.allCases { XCTAssertGreaterThanOrEqual(preset.settings.endDelay, 0.009) }
+    }
+
+    func testEstimateIncludesTheEndDelay() {
+        let dot = [ScreenStroke(start: .zero, end: .zero)]
+        let without = SpeedSettings(stepSize: 4, eventDelay: 0, downDelay: 0, upDelay: 0, moveDelay: 0)
+        var with = without
+        with.endDelay = 0.02
+        XCTAssertEqual(TimeEstimator.estimate(dot, speed: with) - TimeEstimator.estimate(dot, speed: without), 0.02, accuracy: 1e-9)
+    }
 }

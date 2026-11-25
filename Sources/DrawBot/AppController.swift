@@ -957,7 +957,9 @@ final class AppController: ObservableObject {
             showControlPanel()
             return
         }
-        plan = RunPlan(canvas: canvas, steps: steps, speed: settings.speed.settings,
+        // Frame-aware timing for the screen the canvas is on (see SpeedSettings.endDelay).
+        let fps = ScreenUtil.screen(forCanvas: canvas)?.maximumFramesPerSecond ?? 60
+        plan = RunPlan(canvas: canvas, steps: steps, speed: settings.speed.settings.adapted(toRefreshRate: fps),
                        pauseOnMouseMove: settings.pauseOnMouseMove, countdownSeconds: settings.countdownSeconds,
                        autoCopyHex: settings.autoCopyHex, penSize: settings.penSize, startedAt: Date(),
                        profile: profile, automatic: automatic && profile != nil)

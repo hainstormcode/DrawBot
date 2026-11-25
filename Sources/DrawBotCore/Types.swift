@@ -173,20 +173,49 @@ public struct SpeedSettings: Codable, Equatable, Sendable {
     public var upDelay: Double
     /// Pause after the hover move to a stroke's start (before mouse-down), seconds.
     public var moveDelay: Double
+    /// Pause after the last drag event, before mouse-up, seconds (lets the app draw the stroke's
+    /// end before the button is released).
+    public var endDelay: Double
 
-    public init(stepSize: Double, eventDelay: Double, downDelay: Double, upDelay: Double, moveDelay: Double) {
+    public init(stepSize: Double, eventDelay: Double, downDelay: Double, upDelay: Double, moveDelay: Double, endDelay: Double = 0) {
         self.stepSize = stepSize
         self.eventDelay = eventDelay
         self.downDelay = downDelay
         self.upDelay = upDelay
         self.moveDelay = moveDelay
+        self.endDelay = endDelay
+    }
+
+    enum CodingKeys: String, CodingKey { case stepSize, eventDelay, downDelay, upDelay, moveDelay, endDelay }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        stepSize = try c.decode(Double.self, forKey: .stepSize)
+        eventDelay = try c.decode(Double.self, forKey: .eventDelay)
+        downDelay = try c.decode(Double.self, forKey: .downDelay)
+        upDelay = try c.decode(Double.self, forKey: .upDelay)
+        moveDelay = try c.decode(Double.self, forKey: .moveDelay)
+        endDelay = try c.decodeIfPresent(Double.self, forKey: .endDelay) ?? 0
     }
 
     /// For laggy apps / browser canvases that drop events.
-    public static let careful = SpeedSettings(stepSize: 2, eventDelay: 0.006, downDelay: 0.030, upDelay: 0.030, moveDelay: 0.020)
-    public static let normal = SpeedSettings(stepSize: 4, eventDelay: 0.003, downDelay: 0.015, upDelay: 0.015, moveDelay: 0.010)
-    public static let fast = SpeedSettings(stepSize: 8, eventDelay: 0.0015, downDelay: 0.008, upDelay: 0.008, moveDelay: 0.005)
-    public static let ludicrous = SpeedSettings(stepSize: 16, eventDelay: 0.0008, downDelay: 0.004, upDelay: 0.004, moveDelay: 0.003)
+    // endDelay: apps (browsers especially) handle input once per screen refresh. If the button is
+    // released in the same refresh as the stroke's last movement, the stroke (or most of it) is
+    // often never drawn. Measured in PaintZ on a 120 Hz screen: without it, Normal covered 89% of
+    // a noisy test patch and Ludicrous 26%; with ≥ 9 ms, every preset covered 100%. These are
+    // minimums: `adapted(toRefreshRate:)` raises endDelay to 1.15 refreshes of the actual screen.
+    public static let careful = SpeedSettings(stepSize: 2, eventDelay: 0.006, downDelay: 0.030, upDelay: 0.030, moveDelay: 0.020, endDelay: 0.025)
+    public static let normal = SpeedSettings(stepSize: 4, eventDelay: 0.003, downDelay: 0.015, upDelay: 0.015, moveDelay: 0.010, endDelay: 0.012)
+    public static let fast = SpeedSettings(stepSize: 8, eventDelay: 0.0015, downDelay: 0.008, upDelay: 0.008, moveDelay: 0.005, endDelay: 0.010)
+    public static let ludicrous = SpeedSettings(stepSize: 16, eventDelay: 0.0008, downDelay: 0.004, upDelay: 0.004, moveDelay: 0.003, endDelay: 0.009)
+
+    /// These settings with the pause before mouse-up at least 1.15 frames of a screen refreshing
+    /// `fps` times per second (60 Hz → 19 ms, 120 Hz → 9.6 ms).
+    public func adapted(toRefreshRate fps: Int) -> SpeedSettings {
+        var s = self
+        if fps > 0 { s.endDelay = max(endDelay, 1.15 / Double(fps)) }
+        return s
+    }
 }
 
 public enum SpeedPreset: String, Codable, CaseIterable, Sendable {
@@ -203,7 +232,7 @@ public enum SpeedPreset: String, Codable, CaseIterable, Sendable {
 
     public var displayName: String {
         switch self {
-        case .careful: return "Careful (laggy apps / browsers)"
+        case .careful: return "Careful (very laggy apps)"
         case .normal: return "Normal"
         case .fast: return "Fast"
         case .ludicrous: return "Ludicrous"

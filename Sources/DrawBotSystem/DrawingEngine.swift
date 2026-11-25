@@ -149,7 +149,7 @@ public final class DrawingEngine {
         func delay(_ d: Double) -> Double { d.isFinite ? min(max(0, d), 1) : 0 }
         let step = s.stepSize.isFinite && s.stepSize > 0 ? max(0.5, s.stepSize) : 4
         return SpeedSettings(stepSize: step, eventDelay: delay(s.eventDelay), downDelay: delay(s.downDelay),
-                             upDelay: delay(s.upDelay), moveDelay: delay(s.moveDelay))
+                             upDelay: delay(s.upDelay), moveDelay: delay(s.moveDelay), endDelay: delay(s.endDelay))
     }
 }
 
@@ -381,6 +381,7 @@ private final class DrawingWorker {
             }
         }
 
+        env.sleep(s.endDelay)
         try checkpoint()
         driver.mouseUp(at: b)
         posted()

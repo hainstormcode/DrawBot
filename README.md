@@ -113,7 +113,8 @@ Xcode works.
    - **Merge similar**: colors closer than this ΔE are merged into one.
    - **Pen size**: the grid spacing in points. *Set your brush to the size shown under the
      slider*; on a Retina screen many apps want twice that number in pixels.
-   - **Speed**: *Careful* for browser canvases and laggy apps, *Ludicrous* if your app keeps up.
+   - **Speed**: how fast DrawBot moves. Every speed draws the whole picture; *Careful* is only
+     worth it for apps that lag badly.
    - **Color order**, **Countdown**, **Pause if I move the mouse**, **Skip near-white
      colors**, and **Copy each color's hex automatically**.
    - Click a swatch in the palette strip to skip that color, or click it again to include it.
@@ -249,8 +250,14 @@ your app to the front), it falls back to the normal prompt for that color. That 
 - **Zoom 100%.** The pen size is in screen points; a zoomed canvas needs a scaled brush.
 - **Retina screens**: many apps measure brushes in image pixels, which is about twice the point
   size at 100% zoom. The panel shows both.
-- **Browser paint apps**: use the *Careful* speed. Browsers drop fast mouse events, which
-  shows up as dotted lines.
+- **Every speed draws completely.** Apps, browsers especially, handle input once per screen
+  refresh. A stroke whose mouse button is released in the same refresh as its last movement is
+  often never drawn at all, which used to leave gaps and missing dots, worse at higher speeds.
+  DrawBot now waits a little over one refresh of the canvas's screen before releasing each
+  stroke (about 10 ms at 120 Hz, 19 ms at 60 Hz). In tests, every speed covered 100% of solid
+  and noisy patches; faster speeds are still faster, just not lossy.
+- **Brush size**: if you still see thin white seams between rows, the brush in your app is
+  smaller than DrawBot's pen size. Make it match (or 1 px bigger).
 - **Hot corners**: turn them off, or keep the canvas away from screen corners.
 - Keep palettes and floating windows off the canvas. DrawBot checks before every color and
   tells you who's in the way.
@@ -282,7 +289,8 @@ hotkeys work.
 - **Strokes land in the wrong place.** The canvas moved or scrolled after you selected it, or
   the zoom changed. Select the canvas again.
 - **Gaps between lines.** Make the brush slightly bigger, or the pen size slightly smaller.
-- **Dotted or missing lines in a browser.** Use *Careful*.
+- **Thin white lines between rows.** The brush in your app is narrower than the pen size.
+  Set it to the size the panel shows, or 1 px bigger.
 - **Lines turn into right-clicks or ⌘-clicks.** Let go of ⌃⌥⌘ after pressing ⌃⌥⌘↩. DrawBot
   waits for you to release modifier keys before it touches the mouse, but only for so long.
 - **It pauses right away with "Mouse moved".** Hands off, or turn off *Pause if I move the
