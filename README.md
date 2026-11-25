@@ -250,7 +250,10 @@ before each color.
 This needs the **Screen Recording** permission (System Settings → Privacy & Security → Screen &
 System Audio Recording) and macOS 14 or later. DrawBot asks for it the first time; macOS
 usually wants DrawBot relaunched after you turn it on. DrawBot only looks at the drawing app's
-window, and only during the lesson and its check.
+window, and only during the lesson and its check. Like Accessibility, an ad-hoc signed rebuild
+loses this permission even though the switch still looks on: remove DrawBot's row with –, add it
+again, and relaunch. If macOS refuses a screenshot, DrawBot stops the lesson and says so,
+rather than letting the system's Screen Recording window pop up on every click.
 
 ### Using it
 

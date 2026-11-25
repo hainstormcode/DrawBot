@@ -450,13 +450,36 @@ final class ColorLearnSession {
                     guard let self, self.token == t, self.stage == .palette else { return }
                     self.paletteCaptures = Task { @MainActor [weak self] in
                         guard let self else { return }
-                        self.paletteBaseline = try? await ScreenSampler.capture(self.paletteRect)
+                        self.paletteBaseline = await self.capturePalette(token: t)
                     }
                     self.recorder.recordsLocalWindow = self.target.recordsLocalWindow
                     self.recorder.onChange = { [weak self] in self?.paletteInput(token: t) }
                     self.recorder.start()
                 }
             }
+        }
+    }
+
+    /// A screenshot of the palette area, or nil. If macOS refuses it, the lesson stops right
+    /// away: every refused screenshot brings up the system's Screen Recording window and takes
+    /// the focus away from the drawing app, so trying again on every click would do that each
+    /// time. (After DrawBot is rebuilt, macOS can refuse even though System Settings shows it
+    /// switched on: the grant belongs to the old build.)
+    private func capturePalette(token t: Int) async -> RGBAImage? {
+        do {
+            return try await ScreenSampler.capture(paletteRect)
+        } catch let error as ScreenSampler.CaptureError {
+            note("palette: screenshot failed (\(error))")
+            return nil
+        } catch {
+            guard token == t else { return nil }
+            note("palette: screenshot refused (\(error.localizedDescription))")
+            token += 1   // cancels the pending screenshots and checks
+            recorder.stop()
+            hud.hide()
+            target.watchEscape(false)
+            showResult(success: false, message: "macOS didn't let DrawBot take a screenshot, so it stopped instead of asking again on every click. In System Settings → Privacy & Security → Screen & System Audio Recording, select DrawBot and remove it with –, add it again with +, switch it on, then quit and reopen DrawBot and start the lesson again. (If you rebuilt DrawBot, the old entry belongs to the old build, even if it looks switched on.)")
+            return nil
         }
     }
 
@@ -480,7 +503,9 @@ final class ColorLearnSession {
             await previous?.value
             try? await Task.sleep(nanoseconds: 450_000_000)
             guard let self, self.token == t else { return }
-            if let frame = try? await ScreenSampler.capture(self.paletteRect) {
+            let captured = await self.capturePalette(token: t)
+            guard self.token == t else { return }   // the lesson stopped meanwhile
+            if let frame = captured {
                 self.paletteFrames.append(frame)
             } else if let lastFrame = self.paletteFrames.last ?? self.paletteBaseline {
                 self.paletteFrames.append(lastFrame)   // keep frames and clicks aligned
@@ -554,7 +579,8 @@ final class ColorLearnSession {
                             try? await Task.sleep(nanoseconds: 400_000_000)
                             guard let self, self.token == t else { return }
                             self.hud.hide()
-                            let frame = try? await ScreenSampler.capture(self.paletteRect)
+                            let frame = await self.capturePalette(token: t)
+                            guard self.token == t else { return }
                             let shown = frame.flatMap { PaletteLearner.indicatorColor(in: $0, indicator: analysis.indicator) }
                             self.note("palette check: clicked \(test.color.hex), display shows \(shown?.hex ?? "nothing") (\(outcome))")
                             if let shown, ColorMath.deltaE(shown, test.color) <= 8 {
