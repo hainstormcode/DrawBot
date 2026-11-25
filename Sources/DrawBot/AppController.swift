@@ -507,6 +507,27 @@ final class AppController: ObservableObject {
         } else {
             target = .none
         }
+        refreshSite()
+    }
+
+    /// The website the browser under the canvas shows (nil for other apps). The user may switch
+    /// tabs at any time, so this is re-read before learning, before drawing and when the panel
+    /// opens.
+    @Published private(set) var targetSite: SiteDetector.Site?
+
+    func refreshSite() {
+        guard case .app(let app) = target, !app.isTerminated, let canvas else {
+            if targetSite != nil { targetSite = nil }
+            return
+        }
+        let site = SiteDetector.site(of: app, at: CGPoint(x: canvas.midX, y: canvas.midY))
+        if site != targetSite { targetSite = site }
+    }
+
+    /// "Zen — paintz.app", or just the app's name.
+    var targetDescription: String {
+        guard let site = targetSite, case .app = target else { return target.displayName }
+        return "\(target.displayName) — \(site.name)"
     }
 
     /// Re-captures the target if it went away (terminated app, closed test canvas, nothing found).
@@ -535,10 +556,14 @@ final class AppController: ObservableObject {
 
     // MARK: Colour Learn
 
-    /// Key under which the target app's learned colour picker is stored.
+    /// Key under which the target's learned colour picker is stored: the app, plus the website
+    /// for browsers (each web paint app has its own picker).
     var targetAppKey: String? {
         switch target {
-        case .app(let a): return a.bundleIdentifier ?? a.localizedName.map { "name:" + $0 }
+        case .app(let a):
+            guard let base = a.bundleIdentifier ?? a.localizedName.map({ "name:" + $0 }) else { return nil }
+            if let site = targetSite { return base + "|site:" + site.key }
+            return base
         case .testCanvas: return "local.drawbot.testcanvas"
         case .none: return nil
         }
@@ -555,9 +580,9 @@ final class AppController: ObservableObject {
             return "Select a canvas first. DrawBot learns the colour picker of the app under the canvas."
         }
         if let p = currentProfile {
-            return "Learned for \(target.displayName): \(p.summary)"
+            return "Learned for \(targetDescription): \(p.summary)"
         }
-        return "DrawBot hasn't learned \(target.displayName)'s colour picker yet. Click Learn and select two colours while DrawBot watches."
+        return "DrawBot hasn't learned \(targetDescription)'s colour picker yet. Click Learn and select two colours while DrawBot watches."
     }
 
     /// Full Accessibility is needed to watch the keyboard (typing a hex code).
@@ -576,11 +601,12 @@ final class AppController: ObservableObject {
         }
         guard let canvas else { statusMessage = "Select a canvas first (⌃⌥⌘S)."; return }
         resolveTarget()
+        refreshSite()
         guard let key = targetAppKey else {
             statusMessage = "DrawBot couldn't tell which app is under the canvas. Select the canvas again."
             return
         }
-        let appName = target.displayName
+        let appName = targetDescription
         let isTestCanvas = target == .testCanvas
         let session = ColorLearnSession(
             target: .init(appKey: key, appName: appName, canvas: canvas,
@@ -759,6 +785,7 @@ final class AppController: ObservableObject {
         permissionTimer = nil
         guard visible else { return }
         refreshPermission()
+        refreshSite()
         let t = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.refreshPermission() }
         }
@@ -895,12 +922,13 @@ final class AppController: ObservableObject {
             return
         }
         resolveTarget()
+        refreshSite()
         let profile = currentProfile
         let automatic = settings.colorSelection == .automatic
         if automatic && profile == nil {
             statusMessage = target == .none
                 ? "DrawBot couldn't tell which app is under the canvas. Select the canvas again."
-                : "DrawBot hasn't learned \(target.displayName)'s colour picker yet. Click Learn Colour Picker…, or set Colour selection to “Ask me”."
+                : "DrawBot hasn't learned \(targetDescription)'s colour picker yet. Click Learn Colour Picker…, or set Colour selection to “Ask me”."
             showControlPanel()
             return
         }

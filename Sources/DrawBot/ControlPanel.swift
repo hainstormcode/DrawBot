@@ -152,7 +152,7 @@ struct ControlPanelView: View {
                 Text(d).font(.callout).fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 4) {
                     Text("Drawing into:").foregroundColor(.secondary)
-                    Text(controller.target.displayName).lineLimit(1).truncationMode(.tail)
+                    Text(controller.targetDescription).lineLimit(1).truncationMode(.tail)
                 }
                 .font(.callout)
                 if let g = controller.gridDescription {

@@ -134,7 +134,10 @@ colours automatically (Colour Learn)** and teach it once per app.
 ### Teaching it
 
 1. Select the canvas first. DrawBot learns the colour picker of the app under the canvas and
-   remembers it for that app.
+   remembers it for that app. In a web browser it remembers one picker **per website**, so Sumo
+   Paint and PaintZ in the same browser each keep their own. The panel shows which site it sees
+   ("Drawing into: Zen — paintz.app"). It reads the page's address through the Accessibility
+   permission it already has, or the window title if the browser doesn't expose the address.
 2. Click **Learn Colour Picker…**.
 3. DrawBot asks for an orange (#E68A2E). Select it in your app however you normally would, then
    press **Done** (⌃⌥⌘↩). While the prompt is up DrawBot records your clicks, drags, double
@@ -343,8 +346,6 @@ What those tests turned up, and what changed because of it:
   this, and DrawBot then suggests teaching another way.
 - Pickers that only offer a fixed palette of swatches can't be learned. There's nothing
   continuous to fit. Hex fields, sliders, squares, wheels and hue rings can.
-- Browser paint apps all share one app ID (the browser's), so DrawBot keeps one learned picker
-  per browser, not per website.
 - DrawBot can't see whether a picker actually opened. It relies on timing, and on you closing
   the picker at the end of each demonstration.
 - A hue strip is assumed to have its red seam at the ends. PaintZ's sits 15° in from the
