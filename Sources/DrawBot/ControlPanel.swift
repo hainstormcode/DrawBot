@@ -210,7 +210,7 @@ struct ControlPanelView: View {
                 GridRow {
                     Text("Colors")
                     HStack {
-                        Slider(value: intBinding(\.maxColors), in: 1...32, step: 1)
+                        Slider(value: intBinding(\.maxColors), in: 1...32)
                         Stepper("\(controller.settings.maxColors)", value: $controller.settings.maxColors, in: DrawSettings.colorRange)
                             .monospacedDigit()
                             .frame(width: 56, alignment: .trailing)
@@ -219,15 +219,16 @@ struct ControlPanelView: View {
                 GridRow {
                     Text("Merge similar")
                     HStack {
-                        Slider(value: $controller.settings.mergeDistance, in: DrawSettings.mergeRange, step: 1)
-                        Text("ΔE \(Int(controller.settings.mergeDistance))")
+                        Slider(value: roundedBinding(\.mergeDistance), in: DrawSettings.mergeRange)
+                        Text(controller.settings.mergeDistance < 0.5 ? "Off" : "\(Int(controller.settings.mergeDistance))")
                             .monospacedDigit().frame(width: 56, alignment: .trailing)
                     }
+                    .help("Colors closer together than this are merged into one. 0 keeps every color apart; around 10 merges shades that are hard to tell apart.")
                 }
                 GridRow {
                     Text("Pen size")
                     HStack {
-                        Slider(value: $controller.settings.penSize, in: DrawSettings.penRange, step: 1)
+                        Slider(value: roundedBinding(\.penSize), in: DrawSettings.penRange)
                         Stepper("\(AppController.formatPen(controller.settings.penSize)) pt",
                                 value: $controller.settings.penSize, in: DrawSettings.penRange, step: 1)
                             .monospacedDigit()
@@ -248,6 +249,14 @@ struct ControlPanelView: View {
                     .labelsHidden()
                 }
                 GridRow {
+                    Text("Strokes")
+                    Picker("", selection: $controller.settings.strokeStyle) {
+                        ForEach(StrokeStyle.allCases, id: \.self) { Text($0.displayName).tag($0) }
+                    }
+                    .labelsHidden()
+                    .help("A* paths keep the pen down across each shape, steering around other colors: far fewer strokes, usually faster. Top to bottom paints each color row by row, one stroke per stretch.")
+                }
+                GridRow {
                     Text("Color order")
                     Picker("", selection: $controller.settings.order) {
                         ForEach(ColorOrder.allCases, id: \.self) { Text($0.displayName).tag($0) }
@@ -264,7 +273,6 @@ struct ControlPanelView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Toggle("Pause if I move the mouse", isOn: $controller.settings.pauseOnMouseMove)
                 Toggle("Skip near-white colors", isOn: $controller.settings.skipNearWhite)
-                Toggle("Copy each color's hex automatically", isOn: $controller.settings.autoCopyHex)
             }
             .padding(.top, 2)
         }
@@ -324,6 +332,15 @@ struct ControlPanelView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
+    }
+
+    /// Whole numbers without `step:` (which draws tick marks under macOS sliders).
+    private func roundedBinding(_ kp: WritableKeyPath<DrawSettings, Double>) -> Binding<Double> {
+        Binding(get: { controller.settings[keyPath: kp] },
+                set: { v in
+                    let r = v.rounded()
+                    if controller.settings[keyPath: kp] != r { controller.settings[keyPath: kp] = r }
+                })
     }
 
     private func intBinding(_ kp: WritableKeyPath<DrawSettings, Int>) -> Binding<Double> {

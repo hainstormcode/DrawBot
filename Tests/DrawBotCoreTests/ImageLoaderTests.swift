@@ -34,7 +34,7 @@ final class ImageLoaderTests: XCTestCase {
     }
 
     func testAspectFitLetterboxIsTransparent() {
-        // 100×50 opaque green into 20×20 → 20×10 centerd, rows 5..<15.
+        // 100×50 opaque green into 20×20 → 20×10 centered, rows 5..<15.
         let src = TestImages.make(width: 100, height: 50) { ctx in
             TestImages.fill(ctx, CGRect(x: 0, y: 0, width: 100, height: 50), 0, 1, 0)
         }

@@ -13,6 +13,7 @@ struct ProcessingKey: Equatable {
     var isPreviewLayout: Bool
     /// Apps with only fixed swatches: the image's colors are moved to the nearest of these.
     var snapPalette: [RGB]? = nil
+    var strokeStyle: StrokeStyle = .paths
 }
 
 struct ProcessedResult {
@@ -84,7 +85,7 @@ final class ImageProcessor: @unchecked Sendable {
             strokes.reserveCapacity(q.palette.count)
             for i in q.palette.indices {
                 if stale() { return nil }
-                strokes.append(StrokePlanner.strokes(for: i, in: q, layout: layout))
+                strokes.append(StrokePlanner.strokes(for: i, in: q, layout: layout, style: key.strokeStyle))
             }
             for preset in SpeedPreset.allCases {
                 estimates[preset] = strokes.map { TimeEstimator.estimate($0, speed: preset.settings) }

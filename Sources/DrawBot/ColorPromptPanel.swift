@@ -119,18 +119,14 @@ final class ColorPromptController {
 
     var isVisible: Bool { panel.isVisible }
 
-    func show(_ content: PromptContent, canvasCG: CGRect?, autoCopyHex: Bool) {
+    /// Shows `content`. DrawBot never puts anything on the clipboard by itself: the Copy hex
+    /// button does, when the user asks.
+    func show(_ content: PromptContent, canvasCG: CGRect?) {
         hosting.rootView = PromptView(content: content, act: { [weak self] a in self?.onAction(a) })
         hosting.layoutSubtreeIfNeeded()
         panel.setContentSize(hosting.fittingSize)
         // Re-place every time: the canvas may have changed and the size differs per mode.
         panel.setFrameOrigin(ScreenUtil.placement(size: panel.frame.size, avoidingCanvasCG: canvasCG))
-        if autoCopyHex, let c = content.color {
-            switch content.mode {
-            case .color, .learnDemo: Self.copyHex(c)
-            default: break
-            }
-        }
         panel.orderFrontRegardless()
         // SwiftUI may settle its size a run-loop later; re-fit and re-place (a bottom-corner
         // placement must not grow off the screen or onto the canvas).
@@ -226,6 +222,7 @@ struct PromptView: View {
                     }
                     .controlSize(.small)
                     .help("Copies \(c.hexNoHash) (without #) to the clipboard")
+                    .onChange(of: c) { _ in copied = false }   // the next color isn't copied yet
                 }
                 Text("RGB \(c.r), \(c.g), \(c.b)").font(.system(.callout, design: .monospaced))
                 Text("HSB \(Int(hsb.h.rounded()))°, \(Int(hsb.s.rounded()))%, \(Int(hsb.b.rounded()))%")
@@ -270,7 +267,7 @@ struct PromptView: View {
         case .learnDemo(let recorded):
             Text("Select this color in **\(content.appName)** the way you normally do. DrawBot is watching your clicks and typing.")
                 .font(.callout).fixedSize(horizontal: false, vertical: true)
-            Text("If the color picker is a popup or dialog, open it, choose the color, and close it again before pressing Done, every time. Typing the color's values (the hex code, which is on the clipboard, or R, G and B) is the most reliable. Clicking works too: get as close as you can. If what you get looks different from the swatch here, your app is changing the color; try another way. Do it the same way each time, and don't paint on the canvas.")
+            Text("If the color picker is a popup or dialog, open it, choose the color, and close it again before pressing Done, every time. Typing the color's values (the hex code, or R, G and B) is the most reliable; pasting the hex from Copy hex counts as typing, and DrawBot will type it itself later. Clicking works too: get as close as you can. If what you get looks different from the swatch here, your app is changing the color; try another way. Do it the same way each time, and don't paint on the canvas.")
                 .font(.caption).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
             if !content.note.isEmpty {
                 Text(content.note).font(.callout.weight(.semibold)).foregroundColor(.orange)

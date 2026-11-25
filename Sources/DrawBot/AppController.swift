@@ -37,7 +37,6 @@ struct RunPlan {
     let speed: SpeedSettings
     let pauseOnMouseMove: Bool
     let countdownSeconds: Int
-    let autoCopyHex: Bool
     let penSize: Double
     let startedAt: Date
     /// The learned color picker of the target app (Color Learn), if any.
@@ -280,7 +279,7 @@ final class AppController: ObservableObject {
         if c != settings { settings = c }   // didSet does not re-enter from within itself
         SettingsStore.save(settings)
         if old.maxColors != settings.maxColors || old.mergeDistance != settings.mergeDistance
-            || old.penSize != settings.penSize {
+            || old.penSize != settings.penSize || old.strokeStyle != settings.strokeStyle {
             reprocess()
         }
         if old.skipNearWhite != settings.skipNearWhite { resetSkipSet() }
@@ -291,7 +290,8 @@ final class AppController: ObservableObject {
         guard let image else { return nil }
         if let canvas {
             return ProcessingKey(imageToken: imageToken, layout: GridLayout(canvas: canvas, penSize: settings.penSize),
-                                 options: settings.quantizeOptions, isPreviewLayout: false, snapPalette: snapPalette)
+                                 options: settings.quantizeOptions, isPreviewLayout: false, snapPalette: snapPalette,
+                                 strokeStyle: settings.strokeStyle)
         }
         return ProcessingKey(imageToken: imageToken, layout: ImageProcessor.previewLayout(for: image),
                              options: settings.quantizeOptions, isPreviewLayout: true, snapPalette: snapPalette)
@@ -961,7 +961,7 @@ final class AppController: ObservableObject {
         let fps = ScreenUtil.screen(forCanvas: canvas)?.maximumFramesPerSecond ?? 60
         plan = RunPlan(canvas: canvas, steps: steps, speed: settings.speed.settings.adapted(toRefreshRate: fps),
                        pauseOnMouseMove: settings.pauseOnMouseMove, countdownSeconds: settings.countdownSeconds,
-                       autoCopyHex: settings.autoCopyHex, penSize: settings.penSize, startedAt: Date(),
+                       penSize: settings.penSize, startedAt: Date(),
                        profile: profile, automatic: automatic && profile != nil)
         statusMessage = nil
         needsRegrant = false
@@ -1263,7 +1263,7 @@ final class AppController: ObservableObject {
         statusMessage = "Done — \(plan.steps.count) color\(plan.steps.count == 1 ? "" : "s"), \(strokes) strokes."
         prompt.show(PromptContent(mode: .done(summary: "Painted \(plan.steps.count) color\(plan.steps.count == 1 ? "" : "s") (\(strokes) strokes) in \(TimeEstimator.format(elapsed))."),
                                   color: nil),
-                    canvasCG: plan.canvas, autoCopyHex: false)
+                    canvasCG: plan.canvas)
         self.plan = nil
     }
 
@@ -1314,7 +1314,7 @@ final class AppController: ObservableObject {
             content.canAutoSelect = plan.profile != nil
             content.note = autoNote
         }
-        prompt.show(content, canvasCG: plan.canvas, autoCopyHex: plan.autoCopyHex && mode == .color)
+        prompt.show(content, canvasCG: plan.canvas)
     }
 
     private func showHUD() {

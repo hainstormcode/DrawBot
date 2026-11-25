@@ -4,16 +4,23 @@ public enum TimeEstimator {
     /// Fixed per-posted-event overhead, seconds.
     public static let perEventOverhead: TimeInterval = 0.00015
 
-    /// Number of drag events the DrawingEngine posts for a stroke: ceil(length / stepSize),
-    /// at least 1 for a line, and 2 for a dot (wiggle out and back).
+    /// Number of drag events the DrawingEngine posts for a stroke: ceil(segment length / stepSize)
+    /// per straight segment (at least 1 each), and 2 for a dot (wiggle out and back).
     public static func dragEventCount(_ stroke: ScreenStroke, stepSize: Double) -> Int {
         if stroke.isDot { return 2 }
         let step = stepSize > 0 ? stepSize : 1
-        return max(1, Int((stroke.length / step).rounded(.up)))
+        let pts = stroke.points
+        var n = 0
+        for i in 1..<pts.count {
+            let d = Double(hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y))
+            if d > 0 { n += max(1, Int((d / step).rounded(.up))) }
+        }
+        return max(1, n)
     }
 
     /// Estimated wall-clock seconds the DrawingEngine needs for `strokes` at `speed`
-    /// (moveDelay + downDelay + ceil(length/stepSize) drag events * eventDelay + endDelay + upDelay per stroke,
+    /// (moveDelay + downDelay + ceil(length/stepSize) drag events * eventDelay + endDelay per corner and at
+    /// the end + upDelay per stroke,
     /// plus ~0.15 ms per posted event of overhead).
     public static func estimate(_ strokes: [ScreenStroke], speed: SpeedSettings) -> TimeInterval {
         let fixed = speed.moveDelay + speed.downDelay + speed.endDelay + speed.upDelay
@@ -22,7 +29,9 @@ public enum TimeEstimator {
             let drags = dragEventCount(s, stepSize: speed.stepSize)
             // move + down + drags + up
             let events = drags + 3
+            let corners = s.isDot ? 0 : s.via.count   // held for endDelay each
             total += fixed + Double(drags) * speed.eventDelay + Double(events) * perEventOverhead
+                + Double(corners) * speed.endDelay
         }
         return total
     }

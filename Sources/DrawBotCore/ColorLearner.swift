@@ -7,7 +7,7 @@ import Foundation
 ///    and runs of keystrokes. Presses inside the canvas are ignored (test strokes).
 /// 2. The demos are aligned action by action (dynamic programming). Only actions present in
 ///    every demo are kept.
-/// 3. Typing: typed / pasted text is split into numbers and hex codes; each is matched against
+/// 3. Typing: typed / pasted text (pastes are replayed as typing) is split into numbers and hex codes; each is matched against
 ///    the color's hex, RGB, HSB and HSL values (several scales). An interpretation that fits
 ///    every demo becomes a slot filled in for new colors.
 /// 4. Pointer: a gesture that lands on the same spot in every demo is a fixed click. One that
@@ -434,13 +434,11 @@ public enum ColorLearner {
     enum RawPiece: Equatable {
         case key(KeyStroke)
         case text(String)
-        case paste(String, KeyStroke)
 
         var signature: String {
             switch self {
             case .key(let k): return "k\(k.keyCode)/\(k.modifiers.rawValue)"
             case .text: return "t"
-            case .paste: return "p"
             }
         }
     }
@@ -466,8 +464,9 @@ public enum ColorLearner {
                 text.removeLast()
             } else if e.modifiers.contains(.command), e.characters.lowercased() == "v" || e.keyCode == VirtualKey.v,
                       let pasted = e.pasteText {
-                flush()
-                out.append(.paste(pasted, stroke))
+                // A pasted value counts as typed: DrawBot knows every color's values, so it types
+                // them instead of going through (and filling up) the clipboard.
+                text += pasted
             } else {
                 flush()
                 out.append(.key(stroke))
@@ -497,12 +496,12 @@ public enum ColorLearner {
             switch piece {
             case .key(let k):
                 out.append(.key(k))
-            case .text(let s), .paste(let s, _):
+            case .text(let s):
                 var template = TextTemplate(parts: [.literal(s)])
                 if consistent {
                     let strings = all.map { p -> String in
                         switch p[idx] {
-                        case .text(let t), .paste(let t, _): return t
+                        case .text(let t): return t
                         case .key: return ""
                         }
                     }
@@ -516,11 +515,7 @@ public enum ColorLearner {
                     params.formUnion(slot.params)
                     names.append(slot.displayName)
                 }
-                if case .paste(_, let shortcut) = piece {
-                    out.append(.paste(template, shortcut: shortcut))
-                } else {
-                    out.append(.text(template))
-                }
+                out.append(.text(template))
             }
         }
         return TypingAnalysis(step: TypingStep(pieces: out, delayBefore: delay), params: params,

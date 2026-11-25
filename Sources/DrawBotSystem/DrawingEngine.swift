@@ -339,8 +339,9 @@ private final class DrawingWorker {
 
     private func drawStroke(_ stroke: ScreenStroke) throws {
         let rect = config.clampRect.standardized
-        let a = MouseDriver.clamp(stroke.start, to: rect)
-        let b = MouseDriver.clamp(stroke.end, to: rect)
+        let path = stroke.points.map { MouseDriver.clamp($0, to: rect) }
+        let a = path[0]
+        let b = path[path.count - 1]
         let s = config.speed
 
         try checkpoint()
@@ -353,7 +354,7 @@ private final class DrawingWorker {
         posted()
         env.sleep(s.downDelay)
 
-        if stroke.isDot || a == b {
+        if stroke.isDot || path.allSatisfy({ $0 == a }) {
             // Many apps ignore a down/up with no motion: wiggle half a point and come back.
             var q = MouseDriver.clamp(CGPoint(x: a.x + 0.5, y: a.y), to: rect)
             if q == a { q = MouseDriver.clamp(CGPoint(x: a.x - 0.5, y: a.y), to: rect) }
@@ -364,20 +365,29 @@ private final class DrawingWorker {
                 env.sleep(s.eventDelay)
             }
         } else {
-            let length = Double(hypot(b.x - a.x, b.y - a.y))
-            let n = max(1, Int((length / s.stepSize).rounded(.up)))
-            for k in 1...n {
-                let p: CGPoint
-                if k == n {
-                    p = b
-                } else {
-                    let t = CGFloat(k) / CGFloat(n)
-                    p = CGPoint(x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t)
+            // Each straight segment in steps of at most stepSize, landing exactly on every corner.
+            for i in 1..<path.count {
+                let from = path[i - 1], to = path[i]
+                let length = Double(hypot(to.x - from.x, to.y - from.y))
+                guard length > 0 else { continue }
+                let n = max(1, Int((length / s.stepSize).rounded(.up)))
+                for k in 1...n {
+                    let p: CGPoint
+                    if k == n {
+                        p = to
+                    } else {
+                        let t = CGFloat(k) / CGFloat(n)
+                        p = CGPoint(x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t)
+                    }
+                    try checkpoint()
+                    driver.drag(to: p)
+                    posted()
+                    env.sleep(s.eventDelay)
                 }
-                try checkpoint()
-                driver.drag(to: p)
-                posted()
-                env.sleep(s.eventDelay)
+                // Hold each corner for a frame: apps read the pointer once per frame and join
+                // the positions with straight lines, so without the pause a fast pen would cut
+                // the corner (and paint across a neighboring color).
+                if i < path.count - 1 { env.sleep(s.endDelay) }
             }
         }
 

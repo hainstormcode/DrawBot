@@ -163,6 +163,18 @@ final class DrawingEngineTests: XCTestCase {
         assertWellFormed(r.events)
     }
 
+    func testPathStrokeGoesThroughEveryCorner() {
+        let world = FakeWorld()
+        let r = run(world, [ScreenStroke(start: CGPoint(x: 10, y: 10), end: CGPoint(x: 10, y: 14),
+                                         via: [CGPoint(x: 18, y: 10), CGPoint(x: 18, y: 14)])])
+        XCTAssertEqual(r.outcome, .completed)
+        XCTAssertEqual(r.events.map(\.kind), [.moved, .down, .dragged, .dragged, .dragged, .dragged, .dragged, .up])
+        XCTAssertEqual(r.events.map(\.point), [CGPoint(x: 10, y: 10), CGPoint(x: 10, y: 10), CGPoint(x: 14, y: 10),
+                                               CGPoint(x: 18, y: 10), CGPoint(x: 18, y: 14), CGPoint(x: 14, y: 14),
+                                               CGPoint(x: 10, y: 14), CGPoint(x: 10, y: 14)])
+        assertWellFormed(r.events)
+    }
+
     func testDiagonalStrokeSpacingAndExactEnd() {
         let world = FakeWorld()
         let a = CGPoint(x: 100.25, y: 200.5), b = CGPoint(x: 137.75, y: 171.0)

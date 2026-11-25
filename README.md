@@ -39,13 +39,24 @@ colors while it watches. From then on it selects every color itself.
 1. **The canvas becomes a grid.** The rectangle you drag becomes a grid of cells. Each cell is
    the pen size you choose (4 pt by default), so a 400 × 300 pt canvas at 4 pt is a
    100 × 75 grid.
-2. **The image is fitted to the grid.** The image is shrunk to that grid, centerd, with its
+2. **The image is fitted to the grid.** The image is shrunk to that grid, centered, with its
    aspect ratio kept.
 3. **Colors are reduced.** A k-means clustering in CIELAB space (perceptually even, so "close"
    means "looks close") brings the image down to a handful of colors, 8 by default. Colors
    that end up nearly identical are merged.
-4. **Each color becomes strokes.** Same-colored cells in a row form horizontal runs, drawn as
-   one press-drag-release each, snaking back and forth row by row. A lone cell becomes a dot.
+4. **Each color becomes strokes.** By default (**A\* paths**), DrawBot paints a row of a
+   color's cells, then looks for the nearest cells of that color it hasn't painted yet, and
+   uses the A\* search algorithm to find the shortest way there that only crosses cells of
+   that same color. If that way is short, the pen stays down and goes there; if not, it lifts.
+   So a solid shape becomes one zigzag stroke instead of one stroke per row, and the pen
+   steers around other colors instead of lifting at each one. Each corner is held for one
+   screen frame, so the drawing app doesn't cut it short and paint a neighboring cell. With
+   **Top to bottom**, each row's stretch of same-colored cells is its own stroke, row by row.
+   Either way a lone cell becomes a dot.
+
+   In tests in PaintZ, both styles painted 99.5–100% of the cells at every speed.
+   A\* paths needed 1 stroke instead of 20 for a solid blob, and 8 instead of 95 for thin
+   lines; at Normal speed the thin lines took 2.1 s instead of 6.2 s.
 5. **The strokes are drawn.** DrawBot posts synthetic mouse events, the same kind macOS
    accessibility tools use, along every stroke at a speed you choose. Before each color it
    brings the drawing app to the front and checks that no window covers the canvas.
@@ -110,16 +121,20 @@ Xcode works.
    rectangle's size and which app will receive the drawing.
 4. **Tune it** while watching the preview:
    - **Colors**: how many colors (1–32). Fewer means faster, and fewer color changes.
-   - **Merge similar**: colors closer than this ΔE are merged into one.
+   - **Merge similar**: colors closer together than this are merged into one. *Off* keeps
+     every color apart; around 10 merges shades that are hard to tell apart. (The number is
+     the CIE ΔE color difference.)
    - **Pen size**: the grid spacing in points. *Set your brush to the size shown under the
      slider*; on a Retina screen many apps want twice that number in pixels.
    - **Speed**: how fast DrawBot moves. Every speed draws the whole picture; *Careful* is only
      worth it for apps that lag badly.
-   - **Color order**, **Countdown**, **Pause if I move the mouse**, **Skip near-white
-     colors**, and **Copy each color's hex automatically**.
+   - **Strokes**: *A\* paths* (the default, usually faster) or *Top to bottom*. See
+     [How it works](#how-it-works).
+   - **Color order**, **Countdown**, **Pause if I move the mouse**, and **Skip near-white
+     colors**.
    - Click a swatch in the palette strip to skip that color, or click it again to include it.
 5. **Click Start Drawing.** For each color, DrawBot shows the color with its hex, RGB and
-   HSB values; the hex is already on your clipboard. Select it in your app, then click
+   HSB values, and a **Copy hex** button. Select it in your app, then click
    **Continue** or press ⌃⌥⌘↩. After a short countdown it draws, with a small progress display
    in a corner of the screen.
 6. When every color is done, you get **Done!** and a summary.
@@ -163,6 +178,8 @@ DrawBot compares your demonstrations step by step:
   the 0–240 that Windows-style pickers use). If you typed `#e68a2e` the first time and
   `#4b5f73` the second, DrawBot concludes "this is the hex code, lowercase, with a #". For any
   new color it types exactly what you typed (⌘A, Tab, Return and all), with the new value.
+  A hex code you pasted (say, from **Copy hex**) counts as typed: DrawBot types the new value
+  itself, so it never touches your clipboard or fills up your clipboard history.
 - **Anything that moved is a color control.** DrawBot considers every way of explaining the
   moving clicks with one color model (HSB, HSL or RGB). A control could be a slider, a 2-D
   square, a color wheel, or a hue ring. It fits each explanation to your clicks and scores it:

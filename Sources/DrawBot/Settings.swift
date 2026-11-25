@@ -24,10 +24,10 @@ struct DrawSettings: Codable, Equatable {
     var penSize: Double = 4
     var speed: SpeedPreset = .normal
     var order: ColorOrder = .lightToDark
+    var strokeStyle: StrokeStyle = .paths
     var countdownSeconds: Int = 1
     var pauseOnMouseMove: Bool = true
     var skipNearWhite: Bool = true
-    var autoCopyHex: Bool = true
     var colorSelection: ColorSelectionMode = .manual
 
     static let colorRange = 1...32
@@ -45,10 +45,10 @@ struct DrawSettings: Codable, Equatable {
         penSize = (try? c.decodeIfPresent(Double.self, forKey: .penSize)) ?? d.penSize
         speed = (try? c.decodeIfPresent(SpeedPreset.self, forKey: .speed)) ?? d.speed
         order = (try? c.decodeIfPresent(ColorOrder.self, forKey: .order)) ?? d.order
+        strokeStyle = (try? c.decodeIfPresent(StrokeStyle.self, forKey: .strokeStyle)) ?? d.strokeStyle
         countdownSeconds = (try? c.decodeIfPresent(Int.self, forKey: .countdownSeconds)) ?? d.countdownSeconds
         pauseOnMouseMove = (try? c.decodeIfPresent(Bool.self, forKey: .pauseOnMouseMove)) ?? d.pauseOnMouseMove
         skipNearWhite = (try? c.decodeIfPresent(Bool.self, forKey: .skipNearWhite)) ?? d.skipNearWhite
-        autoCopyHex = (try? c.decodeIfPresent(Bool.self, forKey: .autoCopyHex)) ?? d.autoCopyHex
         colorSelection = (try? c.decodeIfPresent(ColorSelectionMode.self, forKey: .colorSelection)) ?? d.colorSelection
         self = clamped()
     }

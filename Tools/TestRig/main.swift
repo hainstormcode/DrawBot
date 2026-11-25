@@ -15,8 +15,12 @@ import DrawBotSystem
 //   { "cmd": "play", "actions": [Action] }      replay actions (format of colorlearn-harness output)
 //   { "cmd": "move", "x": .., "y": .. }         move the pointer (CG global points)
 //   { "cmd": "sleep", "seconds": .. }
-//   { "cmd": "draw", "strokes": [[x1,y1,x2,y2]…], "clamp": [x,y,w,h], "speed": SpeedSettings }
-//                                               draw with DrawBot's real DrawingEngine
+//   { "cmd": "draw", "strokes": [[x1,y1, …, xn,yn]…], "clamp": [x,y,w,h], "speed": SpeedSettings }
+//                                               draw with DrawBot's real DrawingEngine (each
+//                                               stroke a path through its points)
+//   { "cmd": "paint", "grid": ["0.01", …], "x": .., "y": .., "pen": 4, "label": 0, "speed": … }
+//                                               plan a grid (digits = colors, "." = empty) with
+//                                               DrawBot's StrokePlanner and draw one color of it
 // Action: { "type": "click"|"drag"|"key"|"clipboard"|"wait"|"move", … } — see decodeAction.
 //
 // It needs its own Accessibility permission (System Settings → Privacy & Security →
@@ -39,6 +43,10 @@ struct Command: Decodable {
     var strokes: [[Double]]?
     var clamp: [Double]?
     var speed: SpeedSettings?
+    /// paint: the grid, cell size, and which color to draw.
+    var grid: [String]?
+    var pen: Double?
+    var label: Int?
 }
 
 enum JSONValue: Decodable {
@@ -101,11 +109,26 @@ final class Rig {
             play([.move(CGPoint(x: c.x ?? 0, y: c.y ?? 0))], then: next)
         case "play":
             play((c.actions ?? []).compactMap(decodeAction), then: next)
-        case "draw":
-            let strokes = (c.strokes ?? []).filter { $0.count == 4 }.map {
-                ScreenStroke(start: CGPoint(x: $0[0], y: $0[1]), end: CGPoint(x: $0[2], y: $0[3]))
+        case "draw", "paint":
+            var strokes = (c.strokes ?? []).filter { $0.count >= 4 && $0.count % 2 == 0 }.map { v -> ScreenStroke in
+                let pts = stride(from: 0, to: v.count, by: 2).map { CGPoint(x: v[$0], y: v[$0 + 1]) }
+                return ScreenStroke(start: pts[0], end: pts[pts.count - 1], via: Array(pts.dropFirst().dropLast()))
             }
-            let r = c.clamp ?? [0, 0, 10000, 10000]
+            var r = c.clamp ?? [0, 0, 10000, 10000]
+            if c.cmd == "paint", let grid = c.grid, let width = grid.map(\.count).max(), width > 0 {
+                let pen = c.pen ?? 4
+                let labels = grid.flatMap { row -> [Int32] in
+                    let cells = row.map { ch in ch.wholeNumberValue.map(Int32.init) ?? -1 }
+                    return cells + Array(repeating: -1, count: width - cells.count)
+                }
+                let k = Int(labels.max() ?? 0) + 1
+                let q = QuantizedImage(width: width, height: grid.count, labels: labels,
+                                       palette: Array(repeating: RGB(r: 0, g: 0, b: 0), count: max(1, k)),
+                                       counts: (0..<max(1, k)).map { i in labels.filter { $0 == Int32(i) }.count })
+                let canvas = CGRect(x: c.x ?? 0, y: c.y ?? 0, width: Double(width) * pen, height: Double(grid.count) * pen)
+                strokes = StrokePlanner.strokes(for: c.label ?? 0, in: q, layout: GridLayout(canvas: canvas, penSize: pen))
+                r = [canvas.minX, canvas.minY, canvas.width, canvas.height]
+            }
             engine.speed = c.speed ?? .normal
             engine.pauseOnUserMouseMove = false
             let started = Date()

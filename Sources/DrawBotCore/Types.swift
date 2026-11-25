@@ -90,7 +90,7 @@ public struct GridLayout: Sendable, Equatable {
     public let penSize: Double
     public let columns: Int
     public let rows: Int
-    /// Top-left corner of cell (0,0). The grid (columns*penSize × rows*penSize) is centerd in `canvas`.
+    /// Top-left corner of cell (0,0). The grid (columns*penSize × rows*penSize) is centered in `canvas`.
     public let origin: CGPoint
 
     public init(canvas: CGRect, penSize: Double) {
@@ -131,18 +131,50 @@ public struct GridRun: Sendable, Equatable {
     public var length: Int { abs(endCol - startCol) + 1 }
 }
 
-/// One press-drag-release gesture in CG global coordinates. `start == end` is a single dot.
+/// One press-drag-release gesture in CG global coordinates: from `start` through every point of
+/// `via` (in order) to `end`, with the button held down. `start == end` with no `via` is a dot.
 public struct ScreenStroke: Sendable, Equatable {
     public let start: CGPoint
     public let end: CGPoint
+    /// Corner points between start and end (empty for a straight line).
+    public let via: [CGPoint]
 
-    public init(start: CGPoint, end: CGPoint) {
+    public init(start: CGPoint, end: CGPoint, via: [CGPoint] = []) {
         self.start = start
         self.end = end
+        self.via = via
     }
 
-    public var isDot: Bool { start == end }
-    public var length: Double { Double(hypot(end.x - start.x, end.y - start.y)) }
+    /// Every corner of the path: start, via…, end.
+    public var points: [CGPoint] { [start] + via + [end] }
+
+    public var isDot: Bool { start == end && via.allSatisfy { $0 == start } }
+
+    /// Path length (sum of its straight segments).
+    public var length: Double {
+        var total = 0.0
+        var prev = start
+        for p in via + [end] {
+            total += Double(hypot(p.x - prev.x, p.y - prev.y))
+            prev = p
+        }
+        return total
+    }
+}
+
+/// How each color's strokes are laid out.
+public enum StrokeStyle: String, Codable, CaseIterable, Sendable {
+    /// Continuous paths found with A*: the pen stays down across each shape (fewer strokes).
+    case paths
+    /// One stroke per row run, top to bottom (the classic printer style).
+    case rows
+
+    public var displayName: String {
+        switch self {
+        case .paths: return "A* paths"
+        case .rows: return "Top to bottom"
+        }
+    }
 }
 
 public enum ColorOrder: String, Codable, CaseIterable, Sendable {

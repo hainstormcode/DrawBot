@@ -529,7 +529,7 @@ public enum TypingPiece: Codable, Equatable, Sendable {
     case key(KeyStroke)
     /// Characters to type.
     case text(TextTemplate)
-    /// Put the text on the clipboard, then press the paste shortcut.
+    /// Pasted text. Only in profiles learned by older versions; replayed by typing it.
     case paste(TextTemplate, shortcut: KeyStroke)
 }
 
@@ -637,10 +637,10 @@ public struct ColorPickerProfile: Codable, Equatable, Sendable {
                         out.append(.key(k))
                     case .text(let template):
                         for ch in template.format(color) { out.append(.key(stroke(for: ch))) }
-                    case .paste(let template, let shortcut):
-                        out.append(.setClipboard(template.format(color)))
-                        out.append(.wait(0.05))
-                        out.append(.key(shortcut))
+                    case .paste(let template, _):
+                        // Older profiles: type the value instead of pasting it, so selecting
+                        // colors never touches the user's clipboard.
+                        for ch in template.format(color) { out.append(.key(stroke(for: ch))) }
                     }
                 }
             }

@@ -206,7 +206,7 @@ final class ColorLearnerTests: XCTestCase {
         XCTAssertEqual(typed, "7\t200\t99\r")
     }
 
-    func testLearnsPaste() throws {
+    func testLearnsPasteAsTyping() throws {
         func demo(_ c: RGB) -> ColorDemo {
             var t = 0.0
             var e = click(CGPoint(x: 1000, y: 150), at: &t, count: 3)
@@ -217,8 +217,12 @@ final class ColorLearnerTests: XCTestCase {
         let profile = try learn([demo(a), demo(b)])
         let test = RGB(r: 1, g: 2, b: 3)
         let actions = profile.actions(for: test, previous: nil)
-        XCTAssertTrue(actions.contains(.setClipboard("010203")))
+        // Pasting is learned as typing: the clipboard is left alone.
+        XCTAssertFalse(actions.contains { if case .setClipboard = $0 { return true }; return false })
+        let typed = actions.compactMap { a -> String? in if case .key(let k) = a { return k.characters }; return nil }.joined()
+        XCTAssertEqual(typed, "010203\r")
         XCTAssertTrue(actions.contains(.click(at: CGPoint(x: 1000, y: 150), button: .left, count: 3, modifiers: [])))
+        XCTAssertTrue(profile.isExact)
     }
 
     func testLearnsRGBSliders() throws {

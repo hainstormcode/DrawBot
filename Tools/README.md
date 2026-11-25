@@ -31,7 +31,8 @@ open -n -W build/DrawBotTestRig.app --args /path/to/script.json
 ```
 
 The script format is at the top of `TestRig/main.swift` (`record`, `stop`, `play`, `move`,
-`sleep`). `play` takes the same actions `colorlearn-harness` prints, so the loop is: record two
+`sleep`, plus `draw` and `paint` for testing drawing: `paint` plans a grid with DrawBot's real
+`StrokePlanner` and draws it with the real `DrawingEngine`). `play` takes the same actions `colorlearn-harness` prints, so the loop is: record two
 demonstrations with the rig, run `colorlearn-harness` on the recordings (it accepts the rig's
 `inputs` directly), and play the learned actions back with the rig.
 

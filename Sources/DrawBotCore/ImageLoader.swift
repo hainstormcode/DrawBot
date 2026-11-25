@@ -61,7 +61,7 @@ public enum ImageLoader {
                        provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent)
     }
 
-    /// Scales `image` to fit inside width×height (aspect preserved, centerd, high-quality
+    /// Scales `image` to fit inside width×height (aspect preserved, centered, high-quality
     /// downsampling). Area not covered by the image has alpha 0. Output alpha is straight
     /// (un-premultiplied). Row 0 of the result is the top of the picture.
     ///

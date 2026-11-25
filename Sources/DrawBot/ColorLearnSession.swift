@@ -254,7 +254,7 @@ final class ColorLearnSession {
     }
 
     private func showDemo() {
-        prompt.show(demoContent(), canvasCG: avoidRect, autoCopyHex: true)
+        prompt.show(demoContent(), canvasCG: avoidRect)
     }
 
     private func refreshDemo() {
@@ -355,7 +355,7 @@ final class ColorLearnSession {
         c.title = "Teach DrawBot · check"
         c.appName = target.appName
         c.note = note
-        prompt.show(c, canvasCG: avoidRect, autoCopyHex: false)
+        prompt.show(c, canvasCG: avoidRect)
     }
 
     private func accept() {
@@ -403,7 +403,7 @@ final class ColorLearnSession {
         c.title = "Color Learn"
         c.appName = target.appName
         c.swatches = swatches
-        prompt.show(c, canvasCG: target.canvas, autoCopyHex: false)
+        prompt.show(c, canvasCG: target.canvas)
     }
 
     // MARK: Fixed palettes
@@ -466,7 +466,7 @@ final class ColorLearnSession {
         c.appName = target.appName
         c.note = note
         c.swatches = paletteColorsSoFar
-        if initial { prompt.show(c, canvasCG: target.canvas.union(paletteRect.insetBy(dx: 40, dy: 40)), autoCopyHex: false) } else { prompt.update(c) }
+        if initial { prompt.show(c, canvasCG: target.canvas.union(paletteRect.insetBy(dx: 40, dy: 40))) } else { prompt.update(c) }
     }
 
     /// After every click: wait for the app to show the new color, then take a screenshot.
