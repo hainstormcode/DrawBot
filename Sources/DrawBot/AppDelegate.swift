@@ -112,7 +112,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(stopItem!)
         menu.addItem(.separator())
         menu.addItem(makeItem("Open Test Canvas", #selector(openTestCanvas)))
-        learnItem = makeItem("Learn Colour Picker…", #selector(learnColorPicker))
+        learnItem = makeItem("Learn Color Picker…", #selector(learnColorPicker))
         menu.addItem(learnItem!)
         menu.addItem(makeItem("Permissions…", #selector(permissions)))
         menu.addItem(.separator())

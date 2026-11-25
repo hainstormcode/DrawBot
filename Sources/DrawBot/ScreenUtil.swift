@@ -51,10 +51,10 @@ enum ScreenUtil {
             CGPoint(x: vf.minX + margin, y: vf.maxY - h - margin),           // top-left
             CGPoint(x: vf.maxX - w - margin, y: vf.minY + margin),           // bottom-right
             CGPoint(x: vf.minX + margin, y: vf.minY + margin),               // bottom-left
-            CGPoint(x: vf.midX - w / 2, y: vf.maxY - h - margin),            // top-centre
-            CGPoint(x: vf.midX - w / 2, y: vf.minY + margin),                // bottom-centre
-            CGPoint(x: vf.minX + margin, y: vf.midY - h / 2),                // left-centre
-            CGPoint(x: vf.maxX - w - margin, y: vf.midY - h / 2),            // right-centre
+            CGPoint(x: vf.midX - w / 2, y: vf.maxY - h - margin),            // top-center
+            CGPoint(x: vf.midX - w / 2, y: vf.minY + margin),                // bottom-center
+            CGPoint(x: vf.minX + margin, y: vf.midY - h / 2),                // left-center
+            CGPoint(x: vf.maxX - w - margin, y: vf.midY - h / 2),            // right-center
         ]
         // Right next to the canvas (keeps the prompt close to where the user is looking).
         let cy = min(max(canvas.maxY - h, vf.minY + margin), vf.maxY - h - margin)
@@ -66,7 +66,7 @@ enum ScreenUtil {
             CGPoint(x: cx, y: canvas.minY - h - margin),
         ]
 
-        let centre = CGPoint(x: canvas.midX, y: canvas.midY)
+        let center = CGPoint(x: canvas.midX, y: canvas.midY)
         var best = topRight
         var bestScore: (CGFloat, CGFloat) = (.greatestFiniteMagnitude, 0)
         for c in candidates {
@@ -74,7 +74,7 @@ enum ScreenUtil {
             guard vf.insetBy(dx: -0.5, dy: -0.5).contains(r) else { continue }
             let overlap = r.intersection(canvas)
             let area = overlap.isNull ? 0 : overlap.width * overlap.height
-            let dist = hypot(r.midX - centre.x, r.midY - centre.y)
+            let dist = hypot(r.midX - center.x, r.midY - center.y)
             // Lower overlap wins; among equal overlap, larger distance wins.
             if area < bestScore.0 - 0.5 || (abs(area - bestScore.0) <= 0.5 && dist > bestScore.1) {
                 best = c
@@ -103,15 +103,15 @@ enum ScreenUtil {
         ]
         guard let canvasCG else { return corners[0] }
         let canvas = toCocoa(canvasCG)
-        let centre = CGPoint(x: canvas.midX, y: canvas.midY)
+        let center = CGPoint(x: canvas.midX, y: canvas.midY)
         let clear = corners.filter { !CGRect(origin: $0, size: size).intersects(canvas) }
         guard !clear.isEmpty else { return corners[0] }
         return clear.max { a, b in
-            hypot(a.x + w / 2 - centre.x, a.y + h / 2 - centre.y) < hypot(b.x + w / 2 - centre.x, b.y + h / 2 - centre.y)
+            hypot(a.x + w / 2 - center.x, a.y + h / 2 - center.y) < hypot(b.x + w / 2 - center.x, b.y + h / 2 - center.y)
         } ?? corners[0]
     }
 
-    /// Applies the collection behaviour every DrawBot window needs to appear over full-screen apps.
+    /// Applies the collection behavior every DrawBot window needs to appear over full-screen apps.
     static func applyAllSpaces(_ window: NSWindow) {
         window.collectionBehavior.formUnion([.canJoinAllSpaces, .fullScreenAuxiliary])
     }

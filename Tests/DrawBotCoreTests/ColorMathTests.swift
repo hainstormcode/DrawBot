@@ -22,9 +22,9 @@ final class ColorMathTests: XCTestCase {
         XCTAssertEqual(blue.L, 32.30, accuracy: 0.05)
         XCTAssertEqual(blue.a, 79.19, accuracy: 0.05)
         XCTAssertEqual(blue.b, -107.86, accuracy: 0.05)
-        let grey = ColorMath.lab(RGB(r: 128, g: 128, b: 128))
-        XCTAssertEqual(grey.L, 53.59, accuracy: 0.05)
-        XCTAssertEqual(grey.a, 0, accuracy: 0.01)
+        let gray = ColorMath.lab(RGB(r: 128, g: 128, b: 128))
+        XCTAssertEqual(gray.L, 53.59, accuracy: 0.05)
+        XCTAssertEqual(gray.a, 0, accuracy: 0.01)
     }
 
     func testLabRoundTrip() {
@@ -85,9 +85,9 @@ final class ColorMathTests: XCTestCase {
         let cases: [(RGB, String)] = [
             (RGB(r: 0, g: 0, b: 0), "black"),
             (RGB(r: 255, g: 255, b: 255), "white"),
-            (RGB(r: 128, g: 128, b: 128), "grey"),
-            (RGB(r: 210, g: 210, b: 210), "light grey"),
-            (RGB(r: 60, g: 60, b: 60), "dark grey"),
+            (RGB(r: 128, g: 128, b: 128), "gray"),
+            (RGB(r: 210, g: 210, b: 210), "light gray"),
+            (RGB(r: 60, g: 60, b: 60), "dark gray"),
             (RGB(r: 255, g: 0, b: 0), "red"),
             (RGB(r: 128, g: 0, b: 0), "dark red"),
             (RGB(r: 255, g: 192, b: 203), "pale pink"),
@@ -112,7 +112,7 @@ final class ColorMathTests: XCTestCase {
         for (c, name) in cases {
             XCTAssertEqual(ColorMath.approximateName(c), name, "\(c.hex)")
         }
-        // Never empty for any colour.
+        // Never empty for any color.
         var rng = SplitMix64(seed: 3)
         for _ in 0..<1000 {
             let c = RGB(r: UInt8(rng.next() & 255), g: UInt8(rng.next() & 255), b: UInt8(rng.next() & 255))

@@ -5,13 +5,13 @@ moving the real mouse cursor.
 
 There's no plugin and no file import. You choose an image, drag a rectangle over the canvas of
 whatever you're drawing in (Photoshop, Krita, Affinity, Pixelmator, a browser paint app, even
-Preview's markup tools), and DrawBot draws the image there one colour at a time. To the drawing
+Preview's markup tools), and DrawBot draws the image there one color at a time. To the drawing
 app it looks like someone with a very steady hand is scribbling very fast.
 
-The catch with "any app" is colours. DrawBot can't reach into Krita's settings to change the
-brush colour, so by default it stops before each colour and asks you to pick it. **Colour
-Learn** removes that step: you show DrawBot how your app's colour picker works by selecting two
-colours while it watches. From then on it selects every colour itself.
+The catch with "any app" is colors. DrawBot can't reach into Krita's settings to change the
+brush color, so by default it stops before each color and asks you to pick it. **Color
+Learn** removes that step: you show DrawBot how your app's color picker works by selecting two
+colors while it watches. From then on it selects every color itself.
 
 > DrawBot drives your actual mouse. While it's drawing, keep your hands off the mouse and
 > trackpad. If you move the mouse it pauses, and Esc stops it.
@@ -24,7 +24,7 @@ colours while it watches. From then on it selects every colour itself.
 - [Building](#building)
 - [Granting Accessibility (and the ad-hoc signing trap)](#granting-accessibility-and-the-ad-hoc-signing-trap)
 - [Drawing your first picture](#drawing-your-first-picture)
-- [Colour Learn](#colour-learn)
+- [Color Learn](#color-learn)
 - [Getting good results](#getting-good-results)
 - [Hotkeys](#hotkeys)
 - [Troubleshooting](#troubleshooting)
@@ -39,18 +39,18 @@ colours while it watches. From then on it selects every colour itself.
 1. **The canvas becomes a grid.** The rectangle you drag becomes a grid of cells. Each cell is
    the pen size you choose (4 pt by default), so a 400 × 300 pt canvas at 4 pt is a
    100 × 75 grid.
-2. **The image is fitted to the grid.** The image is shrunk to that grid, centred, with its
+2. **The image is fitted to the grid.** The image is shrunk to that grid, centerd, with its
    aspect ratio kept.
-3. **Colours are reduced.** A k-means clustering in CIELAB space (perceptually even, so "close"
-   means "looks close") brings the image down to a handful of colours, 8 by default. Colours
+3. **Colors are reduced.** A k-means clustering in CIELAB space (perceptually even, so "close"
+   means "looks close") brings the image down to a handful of colors, 8 by default. Colors
    that end up nearly identical are merged.
-4. **Each colour becomes strokes.** Same-coloured cells in a row form horizontal runs, drawn as
+4. **Each color becomes strokes.** Same-colored cells in a row form horizontal runs, drawn as
    one press-drag-release each, snaking back and forth row by row. A lone cell becomes a dot.
 5. **The strokes are drawn.** DrawBot posts synthetic mouse events, the same kind macOS
-   accessibility tools use, along every stroke at a speed you choose. Before each colour it
+   accessibility tools use, along every stroke at a speed you choose. Before each color it
    brings the drawing app to the front and checks that no window covers the canvas.
 
-By default the light colours go down first and the dark ones last, so dark details end up on
+By default the light colors go down first and the dark ones last, so dark details end up on
 top and hide any bleed from the lighter strokes.
 
 ## Building
@@ -70,7 +70,7 @@ different SwiftPM scratch directory.
 How the app gets signed matters more than you'd expect:
 
 - **If your keychain has an "Apple Development" certificate**, the script signs with it.
-  macOS then recognises each rebuild as the same app, and the Accessibility permission
+  macOS then recognizes each rebuild as the same app, and the Accessibility permission
   survives rebuilds.
 - **Otherwise the app is signed ad-hoc.** That works fine, but every rebuild looks like a
   brand-new app to macOS. See the next section before you rebuild.
@@ -109,47 +109,47 @@ Xcode works.
    the part of the canvas you want painted, then let go (Esc cancels). The panel shows the
    rectangle's size and which app will receive the drawing.
 4. **Tune it** while watching the preview:
-   - **Colours**: how many colours (1–32). Fewer means faster, and fewer colour changes.
-   - **Merge similar**: colours closer than this ΔE are merged into one.
+   - **Colors**: how many colors (1–32). Fewer means faster, and fewer color changes.
+   - **Merge similar**: colors closer than this ΔE are merged into one.
    - **Pen size**: the grid spacing in points. *Set your brush to the size shown under the
      slider*; on a Retina screen many apps want twice that number in pixels.
    - **Speed**: *Careful* for browser canvases and laggy apps, *Ludicrous* if your app keeps up.
-   - **Colour order**, **Countdown**, **Pause if I move the mouse**, **Skip near-white
-     colours**, and **Copy each colour's hex automatically**.
-   - Click a swatch in the palette strip to skip that colour, or click it again to include it.
-5. **Click Start Drawing.** For each colour, DrawBot shows the colour with its hex, RGB and
+   - **Color order**, **Countdown**, **Pause if I move the mouse**, **Skip near-white
+     colors**, and **Copy each color's hex automatically**.
+   - Click a swatch in the palette strip to skip that color, or click it again to include it.
+5. **Click Start Drawing.** For each color, DrawBot shows the color with its hex, RGB and
    HSB values; the hex is already on your clipboard. Select it in your app, then click
    **Continue** or press ⌃⌥⌘↩. After a short countdown it draws, with a small progress display
    in a corner of the screen.
-6. When every colour is done, you get **Done!** and a summary.
+6. When every color is done, you get **Done!** and a summary.
 
 No paint app handy? **Test Canvas** (in the panel or the menu) opens a blank DrawBot window you
-can draw into. It even has its own little colour picker, so you can try Colour Learn too.
+can draw into. It even has its own little color picker, so you can try Color Learn too.
 
-## Colour Learn
+## Color Learn
 
-This is the part that makes DrawBot hands-free. Turn it on with **Colour selection → Select
-colours automatically (Colour Learn)** and teach it once per app.
+This is the part that makes DrawBot hands-free. Turn it on with **Color selection → Select
+colors automatically (Color Learn)** and teach it once per app.
 
 ### Teaching it
 
-1. Select the canvas first. DrawBot learns the colour picker of the app under the canvas and
+1. Select the canvas first. DrawBot learns the color picker of the app under the canvas and
    remembers it for that app. In a web browser it remembers one picker **per website**, so Sumo
    Paint and PaintZ in the same browser each keep their own. The panel shows which site it sees
    ("Drawing into: Zen — paintz.app"). It reads the page's address through the Accessibility
    permission it already has, or the window title if the browser doesn't expose the address.
-2. Click **Learn Colour Picker…**.
+2. Click **Learn Color Picker…**.
 3. DrawBot asks for an orange (#E68A2E). Select it in your app however you normally would, then
    press **Done** (⌃⌥⌘↩). While the prompt is up DrawBot records your clicks, drags, double
    clicks, typing and pastes. It ignores anything you do in DrawBot's own panels.
-   **If your colour picker is a popup or a dialog, open it, choose the colour, and close it
+   **If your color picker is a popup or a dialog, open it, choose the color, and close it
    again before pressing Done, every time.** See [pickers that cover the canvas](#pickers-that-cover-the-canvas).
-4. It asks for a dull slate blue (#4B5F73). The two colours are deliberately chosen to sit far
+4. It asks for a dull slate blue (#4B5F73). The two colors are deliberately chosen to sit far
    apart on any kind of picker: opposite hues, different saturation and brightness, and every
    RGB channel different. Select it the same way and press **Done**.
-5. DrawBot then selects a third colour, a green, **by itself**, and asks whether it worked. Say
+5. DrawBot then selects a third color, a green, **by itself**, and asks whether it worked. Say
    **Yes**, and you're done. Say **No**, and it asks you to select that green yourself, adds
-   it as a third example, and tries again with a new colour.
+   it as a third example, and tries again with a new color.
 
 ### What it figures out
 
@@ -158,25 +158,25 @@ DrawBot compares your demonstrations step by step:
 - **Anything that landed on the same spot both times is a fixed click**: opening the picker,
   focusing a field, pressing OK. It replays those as they are, double clicks included.
 - **Anything you typed or pasted** is split into numbers and hex codes and checked against the
-  requested colour's hex, RGB, HSB and HSL values, at several scales (0–255, 0–100, 0–1, and
+  requested color's hex, RGB, HSB and HSL values, at several scales (0–255, 0–100, 0–1, and
   the 0–240 that Windows-style pickers use). If you typed `#e68a2e` the first time and
   `#4b5f73` the second, DrawBot concludes "this is the hex code, lowercase, with a #". For any
-  new colour it types exactly what you typed (⌘A, Tab, Return and all), with the new value.
-- **Anything that moved is a colour control.** DrawBot considers every way of explaining the
-  moving clicks with one colour model (HSB, HSL or RGB). A control could be a slider, a 2-D
-  square, a colour wheel, or a hue ring. It fits each explanation to your clicks and scores it:
+  new color it types exactly what you typed (⌘A, Tab, Return and all), with the new value.
+- **Anything that moved is a color control.** DrawBot considers every way of explaining the
+  moving clicks with one color model (HSB, HSL or RGB). A control could be a slider, a 2-D
+  square, a color wheel, or a hue ring. It fits each explanation to your clicks and scores it:
   does it fit, is it a plausible size and on the screen, do the parts agree with each other (a
   hue strip is usually as tall as the square next to it), and how common is that layout. The
   winner is what it uses.
 
-Two demonstrations can't always tell a colour wheel from a square: two points fit either one
-perfectly. That's what the test colour and the **No** button are for. A third example rules
+Two demonstrations can't always tell a color wheel from a square: two points fit either one
+perfectly. That's what the test color and the **No** button are for. A third example rules
 out the wrong shapes, because they can't fit three points.
 
 When DrawBot replays a click-learned picker, it never presses right at the edge of a control.
 Its idea of where the edges are comes from your (slightly imprecise) clicks, and can be a few
-points off. So for colours near an edge (black, white, pure red) it presses safely inside the
-square or slider and drags out to the edge. The picker clamps the drag, so the colour comes out
+points off. So for colors near an edge (black, white, pure red) it presses safely inside the
+square or slider and drags out to the edge. The picker clamps the drag, so the color comes out
 exact instead of the press landing on the hue ring next door.
 
 ### Pickers that cover the canvas
@@ -190,33 +190,33 @@ picker left open would get painted on.
 DrawBot spots the two common slips and tells you what happened instead of learning something
 broken:
 
-- You opened the picker for the first colour and left it open, so the second demonstration
+- You opened the picker for the first color and left it open, so the second demonstration
   never opened it.
 - The picker was still open when you pressed Done.
 
-Clicks on the canvas count as picker clicks when they set the colour, or when they hit the same
+Clicks on the canvas count as picker clicks when they set the color, or when they hit the same
 spot every time (an OK button, say). Drags and stray dabs on the canvas that don't change the
-colour are treated as test strokes and never replayed. Still, it's cleaner not to paint while
+color are treated as test strokes and never replayed. Still, it's cleaner not to paint while
 teaching.
 
 ### Tips for teaching
 
-- **Type the hex code if your picker has a hex field.** It's the most reliable way, and colours
+- **Type the hex code if your picker has a hex field.** It's the most reliable way, and colors
   come out exact. Clicking works too, but a click-learned picker is only as precise as the
-  picker's pixels, so colours can be off by a little.
-- Select both colours **the same way**: same controls, same order.
-- When clicking, get as close as you can to the requested colour. It doesn't have to be
+  picker's pixels, so colors can be off by a little.
+- Select both colors **the same way**: same controls, same order.
+- When clicking, get as close as you can to the requested color. It doesn't have to be
   perfect.
-- Leave the colour picker **where it is** afterwards. DrawBot remembers screen positions, so
+- Leave the color picker **where it is** afterwards. DrawBot remembers screen positions, so
   if the picker moves, use **Learn Again…**.
 - Watching the keyboard needs full Accessibility access. Without it DrawBot can only learn
   clicks, and the panel tells you so.
 
 ### Using it
 
-With Colour Learn on, **Start Drawing** runs straight through: select colour, draw, next colour.
+With Color Learn on, **Start Drawing** runs straight through: select color, draw, next color.
 If a selection is interrupted (you moved the mouse, pressed Esc, or DrawBot couldn't bring
-your app to the front), it falls back to the normal prompt for that colour. That prompt has a
+your app to the front), it falls back to the normal prompt for that color. That prompt has a
 **Select for me** button to try again.
 
 ## Getting good results
@@ -230,7 +230,7 @@ your app to the front), it falls back to the normal prompt for that colour. That
 - **Browser paint apps**: use the *Careful* speed. Browsers drop fast mouse events, which
   shows up as dotted lines.
 - **Hot corners**: turn them off, or keep the canvas away from screen corners.
-- Keep palettes and floating windows off the canvas. DrawBot checks before every colour and
+- Keep palettes and floating windows off the canvas. DrawBot checks before every color and
   tells you who's in the way.
 - Leave **Skip near-white** on for white paper. Painting white on white only costs time.
 
@@ -242,7 +242,7 @@ your app to the front), it falls back to the normal prompt for that colour. That
 | ⌃⌥⌘S | Select the canvas |
 | ⌃⌥⌘↩ | Continue / Resume / Done (whenever DrawBot is waiting for you) |
 | ⌃⌥⌘. | Stop |
-| Esc | Stop while drawing; cancel a countdown, a canvas selection or an automatic colour selection |
+| Esc | Stop while drawing; cancel a countdown, a canvas selection or an automatic color selection |
 | ⌘Q | Quit DrawBot (when one of its windows is in front) |
 
 DrawBot only claims Esc while it's actually busy, so Esc works normally in your apps the rest
@@ -265,7 +265,7 @@ hotkeys work.
   waits for you to release modifier keys before it touches the mouse, but only for so long.
 - **It pauses right away with "Mouse moved".** Hands off, or turn off *Pause if I move the
   mouse*.
-- **Colour Learn picked the wrong colour.** Answer **No** at the check and give it one more
+- **Color Learn picked the wrong color.** Answer **No** at the check and give it one more
   example. If you taught it by typing and the shade is still wrong, the app is changing what's
   typed; teach it by clicking (or with different fields) instead.
 - **A lesson keeps failing.** Every lesson is logged in
@@ -282,10 +282,10 @@ without touching the real mouse:
 
 | Module | What's in it |
 |---|---|
-| `Sources/DrawBotCore` | Pure logic, no AppKit: image loading, colour maths, k-means quantisation, stroke planning, time estimates, and Colour Learn's analysis (`ColorLearn.swift` for the data types, `ColorLearner.swift` for the learning). |
-| `Sources/DrawBotSystem` | The macOS layer: synthetic mouse events and the drawing engine, the Colour Learn input replayer, permissions, global hotkeys, window inspection, app activation. |
-| `Sources/DrawBot` | The app itself: menu-bar item, control panel (SwiftUI), canvas selection overlay, prompts, progress display, Test Canvas, the input recorder, and the Colour Learn lesson flow. |
-| `Tools` | Developer tools for Colour Learn: a page recorder for web paint apps and `colorlearn-harness`, which runs the learner on recorded demonstrations. See [Tools/README.md](Tools/README.md). |
+| `Sources/DrawBotCore` | Pure logic, no AppKit: image loading, color maths, k-means quantization, stroke planning, time estimates, and Color Learn's analysis (`ColorLearn.swift` for the data types, `ColorLearner.swift` for the learning). |
+| `Sources/DrawBotSystem` | The macOS layer: synthetic mouse events and the drawing engine, the Color Learn input replayer, permissions, global hotkeys, window inspection, app activation. |
+| `Sources/DrawBot` | The app itself: menu-bar item, control panel (SwiftUI), canvas selection overlay, prompts, progress display, Test Canvas, the input recorder, and the Color Learn lesson flow. |
+| `Tools` | Developer tools for Color Learn: a page recorder for web paint apps and `colorlearn-harness`, which runs the learner on recorded demonstrations. See [Tools/README.md](Tools/README.md). |
 
 `SPEC.md` is the original design spec, which goes into coordinate systems, focus rules and the
 drawing engine's timing in more detail.
@@ -296,53 +296,21 @@ drawing engine's timing in more detail.
 swift test
 ```
 
-The Core tests include simulated users teaching simulated colour pickers: a Photoshop-style
-square and hue strip, RGB sliders, a macOS-style colour wheel, hex fields, RGB fields with a
+The Core tests include simulated users teaching simulated color pickers: a Photoshop-style
+square and hue strip, RGB sliders, a macOS-style color wheel, hex fields, RGB fields with a
 typo fixed by backspace, and pasting. They check that DrawBot picks the right explanation and
-lands within a few RGB units of the target colour.
+lands within a few RGB units of the target color.
 
 `RecordedPickerTests` replays real demonstrations recorded in web paint apps, including the
 mistakes that used to break the learner. The System tests drive the drawing engine and the
 replayer against a fake event sink, so nothing moves your real mouse.
 
-## Pickers it has been tested on
-
-These were tested with the tools in `Tools/`: record a demonstration in the real app, run the
-learner on it, replay the result into the app, and read back the colour it ended up with.
-
-| App | Picker | Taught by | Result |
-|---|---|---|---|
-| [Sumo Paint](https://paint.sumo.app/) | Popover over the canvas: hue ring around a saturation × brightness square, hex field | Clicking ring and square | Green within 3 RGB units; black, white and red exact |
-| Sumo Paint | Same popover | Triple-click the hex field, type `#` + hex, Return | Exact |
-| [PaintZ](https://paintz.app/) | Modal dialog over the canvas: saturation × value square, vertical hue strip, Save button | Clicking strip and square | Green and purple within 1 RGB unit |
-| PaintZ | Same dialog | Triple-click R, type R, Tab, G, Tab, B, Tab, then Save | Exact (PaintZ itself rounds one channel by 1) |
-| PaintZ | Same dialog | Typing the hex code | **Doesn't work, and can't**: PaintZ shifts a typed hex code 15° round the hue circle, so even your own demonstrations come out wrong. Teach it by clicking or with the R/G/B fields. DrawBot now says so when you answer No. |
-
-The PaintZ rows were re-checked with real OS-level input: real clicks and keystrokes through
-DrawBot's own recorder and replayer, driven by the test rig in `Tools/`, not just the browser
-automation used for the first round.
-
-What those tests turned up, and what changed because of it:
-
-- **Pickers that pop up over the canvas.** Both apps do this. DrawBot used to throw away every
-  click inside the canvas, so it never saw the picker being used. It now keeps them, drops test
-  strokes, and checks that each demonstration opens and closes the picker.
-- **Colours at the edge of a control.** A press "just inside" the estimated edge of Sumo Paint's
-  square landed on its hue ring instead, because the estimate came from imprecise human
-  clicks. DrawBot now presses well inside and drags out, approaching the edge in 1-pt steps.
-- **Triple clicks reported as three single clicks** (by some event sources) lost the
-  select-all before typing. DrawBot now counts quick presses on one spot itself.
-- **Dialogs that ignore clicks while they animate.** PaintZ drops the click on its colour
-  button for about a second after its dialog closes, so the picker never opened and the replay
-  went nowhere. DrawBot now waits for 1.5 s without clicks or key presses before it replays a
-  picker, and keeps more of the pauses you left between steps.
-
 ## Known limitations
 
 - DrawBot draws in straight horizontal runs on a grid. It's a printer, not an artist.
-- Colour Learn remembers screen positions. If your app's colour picker moves, teach it again.
-- DrawBot can't see colours. If an app changes the value you type (PaintZ does this with hex
-  codes), DrawBot types it the same way and gets the same wrong colour. The check step catches
+- Color Learn remembers screen positions. If your app's color picker moves, teach it again.
+- DrawBot can't see colors. If an app changes the value you type (PaintZ does this with hex
+  codes), DrawBot types it the same way and gets the same wrong color. The check step catches
   this, and DrawBot then suggests teaching another way.
 - Pickers that only offer a fixed palette of swatches can't be learned. There's nothing
   continuous to fit. Hex fields, sliders, squares, wheels and hue rings can.

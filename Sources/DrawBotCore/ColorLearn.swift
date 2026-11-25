@@ -1,14 +1,14 @@
 import CoreGraphics
 import Foundation
 
-// Colour Learn: vocabulary shared by the recorder (app), the learner (ColorLearner) and the
+// Color Learn: vocabulary shared by the recorder (app), the learner (ColorLearner) and the
 // replayer (DrawBotSystem.InputReplayer).
 //
-// The user selects two (or more) requested colours in their drawing app's colour picker while
+// The user selects two (or more) requested colors in their drawing app's color picker while
 // DrawBot records the mouse and keyboard. ColorLearner turns those demonstrations into a
-// `ColorPickerProfile`: the sequence of clicks / drags / keystrokes, with every colour-dependent
-// part generalised (where to click in a saturation square, what to type into a hex field…).
-// `ColorPickerProfile.actions(for:previous:)` then produces concrete input for any colour.
+// `ColorPickerProfile`: the sequence of clicks / drags / keystrokes, with every color-dependent
+// part generalized (where to click in a saturation square, what to type into a hex field…).
+// `ColorPickerProfile.actions(for:previous:)` then produces concrete input for any color.
 // All points are CG global coordinates (top-left origin, y down).
 
 // MARK: - Input primitives
@@ -43,7 +43,7 @@ public struct KeyStroke: Codable, Hashable, Sendable {
     public var isShortcut: Bool { !modifiers.isDisjoint(with: [.command, .control]) }
 }
 
-/// macOS virtual key codes (ANSI layout) used by Colour Learn.
+/// macOS virtual key codes (ANSI layout) used by Color Learn.
 public enum VirtualKey {
     public static let a: UInt16 = 0
     public static let v: UInt16 = 9
@@ -146,11 +146,11 @@ public struct RecordedInput: Codable, Equatable, Sendable {
     }
 }
 
-/// The user selecting one requested colour.
+/// The user selecting one requested color.
 public struct ColorDemo: Codable, Equatable, Sendable {
-    /// The colour DrawBot asked for.
+    /// The color DrawBot asked for.
     public var color: RGB
-    /// The colour the picker showed before this demo, when known (the previous demo's colour).
+    /// The color the picker showed before this demo, when known (the previous demo's color).
     public var previousColor: RGB?
     public var inputs: [RecordedInput]
 
@@ -161,9 +161,9 @@ public struct ColorDemo: Codable, Equatable, Sendable {
     }
 }
 
-// MARK: - Colour parameters
+// MARK: - Color parameters
 
-/// A number a colour picker lets you set.
+/// A number a color picker lets you set.
 public enum ColorParam: String, Codable, CaseIterable, Sendable {
     case red, green, blue
     case hue
@@ -217,7 +217,7 @@ public enum PickerColorSpace: String, Codable, CaseIterable, Sendable {
         }
     }
 
-    /// True when knowing `params` pins down the whole colour.
+    /// True when knowing `params` pins down the whole color.
     static func determines(_ params: Set<ColorParam>) -> Bool {
         allCases.contains { params.isSuperset(of: $0.params) }
     }
@@ -260,7 +260,7 @@ extension ColorMath {
 
 // MARK: - Typed values
 
-/// A colour-dependent value the user typed (or pasted).
+/// A color-dependent value the user typed (or pasted).
 public enum ValueSlot: Codable, Hashable, Sendable {
     /// Six hex digits, no "#".
     case hex(uppercase: Bool)
@@ -319,7 +319,7 @@ public enum TextPart: Codable, Equatable, Sendable {
     case slot(ValueSlot)
 }
 
-/// Text with colour-dependent holes, e.g. "#" + hex, or red + ", " + green + ", " + blue.
+/// Text with color-dependent holes, e.g. "#" + hex, or red + ", " + green + ", " + blue.
 public struct TextTemplate: Codable, Equatable, Sendable {
     public var parts: [TextPart]
     public init(parts: [TextPart]) { self.parts = parts }
@@ -373,7 +373,7 @@ public struct LinearMap: Codable, Equatable, Sendable {
 
     /// Margin kept from the estimated ends when pressing: the map is fitted to approximate
     /// human clicks, so its ends can be several points off the real control's edges, and a
-    /// press just outside lands on a neighbouring control.
+    /// press just outside lands on a neighboring control.
     var safeInset: Double { max(5, 0.06 * extent) }
 
     /// The coordinate for `c`, moved inside the control by `safeInset` if it's closer to an end.
@@ -392,11 +392,11 @@ public struct LinearMap: Codable, Equatable, Sendable {
     var extent: Double { abs(slope) * param.range }
 }
 
-/// Point = centre + w × r × e^(i·direction·hue), with r = radius param / range (1 for a hue ring).
+/// Point = center + w × r × e^(i·direction·hue), with r = radius param / range (1 for a hue ring).
 public struct PolarMap: Codable, Equatable, Sendable {
     public var radius: ColorParam?
-    public var centreX: Double
-    public var centreY: Double
+    public var centerX: Double
+    public var centerY: Double
     public var wRe: Double
     public var wIm: Double
     public var direction: Double
@@ -410,7 +410,7 @@ public struct PolarMap: Codable, Equatable, Sendable {
         let h = ColorParam.hue.value(of: c) * .pi / 180 * direction
         let r = min(rp.value(of: c) / rp.range, limit)
         let zr = r * cos(h), zi = r * sin(h)
-        return CGPoint(x: centreX + wRe * zr - wIm * zi, y: centreY + wRe * zi + wIm * zr)
+        return CGPoint(x: centerX + wRe * zr - wIm * zi, y: centerY + wRe * zi + wIm * zr)
     }
 
     func point(for c: RGB, push: Double) -> CGPoint {
@@ -422,11 +422,11 @@ public struct PolarMap: Codable, Equatable, Sendable {
             if r <= 0.004 { r = 0 }
         }
         let zr = r * cos(h), zi = r * sin(h)
-        return CGPoint(x: centreX + wRe * zr - wIm * zi, y: centreY + wRe * zi + wIm * zr)
+        return CGPoint(x: centerX + wRe * zr - wIm * zi, y: centerY + wRe * zi + wIm * zr)
     }
 }
 
-/// Where a pointer step clicks, as a function of the colour.
+/// Where a pointer step clicks, as a function of the color.
 public enum ControlMapping: Codable, Equatable, Sendable {
     /// Always the same spot (a button, a swatch, a text field).
     case fixed(CGPoint)
@@ -434,7 +434,7 @@ public enum ControlMapping: Codable, Equatable, Sendable {
     case axis(ScreenAxis, LinearMap, other: Double)
     /// A 2-D area, e.g. a saturation × brightness square.
     case plane(x: LinearMap, y: LinearMap)
-    /// A colour wheel (hue = angle, radius = saturation) or a hue ring.
+    /// A color wheel (hue = angle, radius = saturation) or a hue ring.
     case polar(PolarMap)
 
     public func point(for c: RGB, push: Double = 0) -> CGPoint {
@@ -482,7 +482,7 @@ public enum ControlMapping: Codable, Equatable, Sendable {
         case .axis(_, let m, _): return "a \(m.param.displayName) slider"
         case .plane(let mx, let my): return "a \(mx.param.displayName) × \(my.param.displayName) area"
         case .polar(let pm):
-            if let r = pm.radius { return "a colour wheel (hue × \(r.displayName))" }
+            if let r = pm.radius { return "a color wheel (hue × \(r.displayName))" }
             return "a hue ring"
         }
     }
@@ -499,7 +499,7 @@ public struct PointerStep: Codable, Equatable, Sendable {
     public var isDrag: Bool
     /// Fixed drags: where the drag started.
     public var dragStart: CGPoint?
-    /// The user grabbed the control's knob where the previous colour had left it and dragged it.
+    /// The user grabbed the control's knob where the previous color had left it and dragged it.
     public var grabsKnob: Bool
     /// Pause before this step, seconds.
     public var delayBefore: Double
@@ -555,7 +555,7 @@ public enum ReplayAction: Equatable, Sendable {
     case move(CGPoint)
 }
 
-/// How to select any colour in one app's colour picker.
+/// How to select any color in one app's color picker.
 public struct ColorPickerProfile: Codable, Equatable, Sendable {
     /// Bundle identifier (or another stable key) of the app.
     public var appKey: String
@@ -563,7 +563,7 @@ public struct ColorPickerProfile: Codable, Equatable, Sendable {
     public var steps: [PickerStep]
     /// How the user typed each character (key code + modifiers), for the replayer.
     public var keyMap: [String: KeyStroke]
-    /// Pointer-based profiles: the colour model the picker uses.
+    /// Pointer-based profiles: the color model the picker uses.
     public var space: PickerColorSpace?
     /// "Types the hex code" / "Clicks a saturation × brightness area and a hue slider".
     public var summary: String
@@ -573,7 +573,7 @@ public struct ColorPickerProfile: Codable, Equatable, Sendable {
     /// Bounding box of every point the profile clicks (CG global), so DrawBot can keep its own
     /// windows out of the way.
     public var pointerBounds: CGRect?
-    /// True when the colour is typed (exact); false when it is clicked (approximate).
+    /// True when the color is typed (exact); false when it is clicked (approximate).
     public var isExact: Bool
 
     public init(appKey: String, appName: String, steps: [PickerStep], keyMap: [String: KeyStroke],
@@ -591,7 +591,7 @@ public struct ColorPickerProfile: Codable, Equatable, Sendable {
         self.isExact = isExact
     }
 
-    /// The colour values this profile types or pastes (empty for a click-only profile).
+    /// The color values this profile types or pastes (empty for a click-only profile).
     public var typedSlots: [ValueSlot] {
         steps.flatMap { step -> [ValueSlot] in
             guard case .typing(let t) = step else { return [] }
@@ -604,7 +604,7 @@ public struct ColorPickerProfile: Codable, Equatable, Sendable {
         }
     }
 
-    /// The input that selects `color`. `previous` is the colour the picker currently shows, if
+    /// The input that selects `color`. `previous` is the color the picker currently shows, if
     /// known (needed for pickers whose knob must be grabbed and dragged).
     public func actions(for color: RGB, previous: RGB?) -> [ReplayAction] {
         var out: [ReplayAction] = []
@@ -629,7 +629,7 @@ public struct ColorPickerProfile: Codable, Equatable, Sendable {
                 }
             }
         }
-        out.append(.wait(0.3))   // let the app apply the colour
+        out.append(.wait(0.3))   // let the app apply the color
         return out
     }
 

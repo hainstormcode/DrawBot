@@ -4,7 +4,7 @@ import DrawBotSystem
 
 // DrawBotTestRig: plays scripted REAL input (the same InputReplayer DrawBot uses) while
 // DrawBot's InputRecorder watches, and writes what was recorded. It lets a developer (or an
-// agent) pilot a colour picker end to end with OS-level events, without rebuilding DrawBot.
+// agent) pilot a color picker end to end with OS-level events, without rebuilding DrawBot.
 //
 //   open -n build/DrawBotTestRig.app --args /path/to/script.json
 //

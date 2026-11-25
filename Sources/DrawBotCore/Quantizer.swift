@@ -18,19 +18,19 @@ public struct SplitMix64: RandomNumberGenerator, Sendable {
 }
 
 public enum Quantizer {
-    /// Maximum number of pixels used to fit the k-means centres.
+    /// Maximum number of pixels used to fit the k-means centers.
     public static let maxSamplePixels = 60_000
     static let maxIterations = 25
     static let convergenceDelta: Float = 0.1
 
-    /// Reduces `image` to at most `options.maxColors` colours (k-means in CIELAB, k-means++
+    /// Reduces `image` to at most `options.maxColors` colors (k-means in CIELAB, k-means++
     /// seeding with a deterministic RNG from `options.seed`, near-duplicate clusters merged per
     /// `options.mergeDistance`). Pixels with alpha < `options.alphaThreshold` get label -1.
-    /// Palette entries are mean sRGB colours of their members; empty clusters are removed and
+    /// Palette entries are mean sRGB colors of their members; empty clusters are removed and
     /// labels re-indexed so palette indices are 0..<palette.count and every count > 0.
     /// An image with no opaque pixels yields an empty palette and all labels -1.
     ///
-    /// If the opaque pixels contain at most `maxColors` distinct colours they are used exactly
+    /// If the opaque pixels contain at most `maxColors` distinct colors they are used exactly
     /// (no k-means), in order of first appearance (before merging).
     public static func quantize(_ image: RGBAImage, options: QuantizeOptions) -> QuantizedImage {
         let w = image.width, h = image.height
@@ -42,7 +42,7 @@ public enum Quantizer {
             return QuantizedImage(width: w, height: h, labels: labels, palette: [], counts: [])
         }
 
-        // 1. Opaque pixel indices + packed colours.
+        // 1. Opaque pixel indices + packed colors.
         var opaque: [Int32] = []
         opaque.reserveCapacity(n)
         image.data.withUnsafeBufferPointer { px in
@@ -58,7 +58,7 @@ public enum Quantizer {
         // 2. Initial clustering → per-pixel cluster ids (in `labels`) and cluster count.
         var clusterCount = 0
         if let exact = exactColors(image, opaque: opaque, limit: k) {
-            // Exact path: each distinct colour is its own cluster.
+            // Exact path: each distinct color is its own cluster.
             clusterCount = exact.colorCount
             for (j, p) in opaque.enumerated() { labels[Int(p)] = exact.labels[j] }
         } else {
@@ -81,23 +81,23 @@ public enum Quantizer {
             }
         }
 
-        // 4. Merge clusters whose (mean-colour) Lab centres are closer than mergeDistance.
+        // 4. Merge clusters whose (mean-color) Lab centers are closer than mergeDistance.
         //    Repeatedly merge the closest pair; stats are count-weighted sums.
         var target = Array(0..<clusterCount)  // cluster → surviving cluster
         var alive = counts.map { $0 > 0 }
-        func centre(_ c: Int) -> LabColor {
+        func center(_ c: Int) -> LabColor {
             let cnt = Double(counts[c])
             return ColorMath.lab(RGB(r: UInt8((Double(sumR[c]) / cnt).rounded()),
                                      g: UInt8((Double(sumG[c]) / cnt).rounded()),
                                      b: UInt8((Double(sumB[c]) / cnt).rounded())))
         }
         if options.mergeDistance > 0 && clusterCount > 1 {
-            var centres = (0..<clusterCount).map { alive[$0] ? centre($0) : LabColor(L: 0, a: 0, b: 0) }
+            var centers = (0..<clusterCount).map { alive[$0] ? center($0) : LabColor(L: 0, a: 0, b: 0) }
             while true {
                 var best = Double.infinity, bi = -1, bj = -1
                 for i in 0..<clusterCount where alive[i] {
                     for j in (i + 1)..<clusterCount where alive[j] {
-                        let d = ColorMath.deltaE(centres[i], centres[j])
+                        let d = ColorMath.deltaE(centers[i], centers[j])
                         if d < best { best = d; bi = i; bj = j }
                     }
                 }
@@ -106,7 +106,7 @@ public enum Quantizer {
                 counts[bj] = 0
                 alive[bj] = false
                 for c in 0..<clusterCount where target[c] == bj { target[c] = bi }
-                centres[bi] = centre(bi)
+                centers[bi] = center(bi)
             }
         }
 
@@ -132,7 +132,7 @@ public enum Quantizer {
         return QuantizedImage(width: w, height: h, labels: labels, palette: palette, counts: finalCounts)
     }
 
-    /// Distinct colours of the opaque pixels if there are at most `limit` of them.
+    /// Distinct colors of the opaque pixels if there are at most `limit` of them.
     private static func exactColors(_ image: RGBAImage, opaque: [Int32], limit: Int)
         -> (labels: [Int32], colorCount: Int)? {
         var map: [UInt32: Int32] = [:]
@@ -162,7 +162,7 @@ public enum Quantizer {
     }
 
     /// k-means in Lab. Writes a cluster id (0..<returned count) into `labels` for every opaque
-    /// pixel and returns the number of clusters (centres) used.
+    /// pixel and returns the number of clusters (centers) used.
     private static func kMeans(_ image: RGBAImage, opaque: [Int32], k: Int, seed: UInt64,
                                labels: inout [Int32]) -> Int {
         let m = opaque.count
@@ -214,7 +214,7 @@ public enum Quantizer {
         while cL.count < k {
             var total = 0.0
             for t in 0..<sn { total += Double(d2[t]) }
-            if total <= 0 { break }  // fewer distinct colours than k in the sample
+            if total <= 0 { break }  // fewer distinct colors than k in the sample
             let r = rng.nextUnit() * total
             var acc = 0.0
             var pick = sn - 1
@@ -270,7 +270,7 @@ public enum Quantizer {
             if maxMove < convergenceDelta { break }
         }
 
-        // Assign ALL opaque pixels to the nearest centre.
+        // Assign ALL opaque pixels to the nearest center.
         cL.withUnsafeBufferPointer { cl in
         cA.withUnsafeBufferPointer { ca in
         cB.withUnsafeBufferPointer { cb in
@@ -297,7 +297,7 @@ public enum Quantizer {
         return kk
     }
 
-    /// Returns a copy of `q` where every label in `indices` becomes -1 (used for "skip this colour"
+    /// Returns a copy of `q` where every label in `indices` becomes -1 (used for "skip this color"
     /// previews). Palette and counts are left unchanged except counts of removed indices become 0.
     public static func removing(_ indices: Set<Int>, from q: QuantizedImage) -> QuantizedImage {
         guard !indices.isEmpty else { return q }
@@ -314,7 +314,7 @@ public enum Quantizer {
         return QuantizedImage(width: q.width, height: q.height, labels: labels, palette: q.palette, counts: counts)
     }
 
-    /// Renders labels to an RGBA preview (palette colours, transparent where label == -1).
+    /// Renders labels to an RGBA preview (palette colors, transparent where label == -1).
     public static func previewImage(_ q: QuantizedImage) -> RGBAImage {
         let n = q.width * q.height
         var data = [UInt8](repeating: 0, count: n * 4)

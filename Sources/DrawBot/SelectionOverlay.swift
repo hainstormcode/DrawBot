@@ -8,7 +8,7 @@ final class OverlayWindow: NSWindow {
 }
 
 /// Full-screen drag-to-select overlay: one window per NSScreen. Reports the selected rectangle
-/// in CG global coordinates (top-left origin), or nil when cancelled.
+/// in CG global coordinates (top-left origin), or nil when canceled.
 final class SelectionOverlay {
     private var windows: [OverlayWindow] = []
     private var completion: ((CGRect?) -> Void)?

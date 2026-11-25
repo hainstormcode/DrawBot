@@ -1,7 +1,7 @@
 import AppKit
 import ApplicationServices
 
-/// Works out which website a browser window shows, so Colour Learn can keep a separate colour
+/// Works out which website a browser window shows, so Color Learn can keep a separate color
 /// picker per site (every web paint app in one browser shares the browser's app ID).
 ///
 /// Uses the Accessibility API (DrawBot already needs that permission):
@@ -9,7 +9,7 @@ import ApplicationServices
 ///    Firefox-based browsers expose it), reduced to its host, e.g. "paintz.app";
 /// 2. failing that, the window title minus the browser's own name, e.g. "PaintZ".
 public enum SiteDetector {
-    /// Browsers we know (others are recognised when their window contains a web area).
+    /// Browsers we know (others are recognized when their window contains a web area).
     public static let knownBrowsers: Set<String> = [
         "com.apple.Safari", "com.apple.SafariTechnologyPreview", "com.google.Chrome", "com.google.Chrome.canary",
         "org.chromium.Chromium", "com.microsoft.edgemac", "com.brave.Browser", "company.thebrowser.Browser",

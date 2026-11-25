@@ -35,10 +35,10 @@ public enum WindowInspector {
         windows(at: point).first
     }
 
-    /// The app that owns the front-most window at the centre of `canvas` (the app being drawn in).
+    /// The app that owns the front-most window at the center of `canvas` (the app being drawn in).
     ///
     /// Normal-level windows (layer 0: document windows, full-screen apps) win over floating ones,
-    /// so another app's transient overlay at the centre (a notification banner, a floating
+    /// so another app's transient overlay at the center (a notification banner, a floating
     /// utility, the Dock) is not mistaken for the drawing app; if no normal window is there, the
     /// front-most eligible window counts.
     ///
@@ -55,7 +55,7 @@ public enum WindowInspector {
     }
 
     /// Windows that are front-most at any of a 7×7 grid of sample points inset 2 pt inside
-    /// `canvas` — i.e. things (colour pickers, palettes, popups) that would catch the drawing
+    /// `canvas` — i.e. things (color pickers, palettes, popups) that would catch the drawing
     /// clicks: windows of other apps, and the target app's own FLOATING windows (layer != 0) where
     /// they lie over one of its normal (layer 0) windows. De-duplicated by windowID. Empty means
     /// the canvas is clear.
@@ -153,7 +153,7 @@ public enum WindowInspector {
             guard let i = windows.firstIndex(where: { $0.bounds.contains(p) }) else { continue }
             let top = windows[i]
             if top.pid == targetPID {
-                // The target's own floating window (palette, colour picker, popover) over one of
+                // The target's own floating window (palette, color picker, popover) over one of
                 // its normal windows catches the clicks too. The target's own windows are fine
                 // otherwise (e.g. when the canvas itself is on a floating window).
                 guard top.layer != 0,

@@ -2,7 +2,7 @@ import CoreGraphics
 import DrawBotCore
 import Foundation
 
-/// Everything that determines a quantisation result. Results are only used while their key
+/// Everything that determines a quantization result. Results are only used while their key
 /// equals the controller's current key.
 struct ProcessingKey: Equatable {
     var imageToken: Int
@@ -23,7 +23,7 @@ struct ProcessedResult {
     let estimates: [SpeedPreset: [TimeInterval]]
 }
 
-/// Background quantisation with coalescing: rapid requests (slider drags) collapse into one,
+/// Background quantization with coalescing: rapid requests (slider drags) collapse into one,
 /// and results of superseded requests are dropped via a generation counter.
 final class ImageProcessor: @unchecked Sendable {
     private let queue = DispatchQueue(label: "local.drawbot.processing", qos: .userInitiated)
@@ -91,7 +91,7 @@ final class ImageProcessor: @unchecked Sendable {
         return ProcessedResult(key: key, quantized: q, preview: preview, strokes: strokes, estimates: estimates)
     }
 
-    /// Preview with skipped colours removed, rendered off-main. Latest request wins.
+    /// Preview with skipped colors removed, rendered off-main. Latest request wins.
     private let previewQueue = DispatchQueue(label: "local.drawbot.preview", qos: .userInitiated)
     private var previewGeneration = 0
 

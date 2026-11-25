@@ -61,13 +61,13 @@ public enum ImageLoader {
                        provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent)
     }
 
-    /// Scales `image` to fit inside width×height (aspect preserved, centred, high-quality
+    /// Scales `image` to fit inside width×height (aspect preserved, centerd, high-quality
     /// downsampling). Area not covered by the image has alpha 0. Output alpha is straight
     /// (un-premultiplied). Row 0 of the result is the top of the picture.
     ///
     /// The fitted image is snapped to whole pixels. Downscales by more than 2× use an exact
     /// area-average (box) filter so thin details are not lost to aliasing; upscales of images
-    /// with few colours (pixel art, logos) use nearest-neighbour to keep edges crisp.
+    /// with few colors (pixel art, logos) use nearest-neighbor to keep edges crisp.
     public static func rasterize(_ image: CGImage, width: Int, height: Int) -> RGBAImage {
         let w = max(1, width), h = max(1, height)
         let iw = image.width, ih = image.height

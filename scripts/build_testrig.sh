@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds build/DrawBotTestRig.app, the Colour Learn test rig (a development tool; see Tools/README.md).
+# Builds build/DrawBotTestRig.app, the Color Learn test rig (a development tool; see Tools/README.md).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 swift build -c release --product DrawBotTestRig

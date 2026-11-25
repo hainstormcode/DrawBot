@@ -1,17 +1,17 @@
 import CoreGraphics
 import Foundation
 
-/// Learns how to drive a colour picker from demonstrations (see ColorLearn.swift).
+/// Learns how to drive a color picker from demonstrations (see ColorLearn.swift).
 ///
 /// 1. Each demo's events are segmented into actions: pointer gestures (click, multi-click, drag)
 ///    and runs of keystrokes. Presses inside the canvas are ignored (test strokes).
 /// 2. The demos are aligned action by action (dynamic programming). Only actions present in
 ///    every demo are kept.
 /// 3. Typing: typed / pasted text is split into numbers and hex codes; each is matched against
-///    the colour's hex, RGB, HSB and HSL values (several scales). An interpretation that fits
-///    every demo becomes a slot filled in for new colours.
+///    the color's hex, RGB, HSB and HSL values (several scales). An interpretation that fits
+///    every demo becomes a slot filled in for new colors.
 /// 4. Pointer: a gesture that lands on the same spot in every demo is a fixed click. One that
-///    moves is a colour control. Every way of explaining those controls with one colour model
+///    moves is a color control. Every way of explaining those controls with one color model
 ///    (HSB / HSL / RGB) is tried: sliders (1-D linear), areas (2-D linear), wheels and hue rings
 ///    (polar). Each is fitted by least squares and scored by fit, plausibility (sizes, on
 ///    screen), consistency (sliders as long as the square beside them…) and how common the
@@ -19,14 +19,14 @@ import Foundation
 ///    every additional demo (after a failed test) adds a point that the wrong explanations
 ///    cannot fit.
 public enum ColorLearner {
-    /// The two colours the user demonstrates first: far apart on any picker (opposite hues,
+    /// The two colors the user demonstrates first: far apart on any picker (opposite hues,
     /// different saturation and brightness, every RGB channel different).
     public static let demoColors: [RGB] = [
         ColorMath.rgb(hue: 30, saturation: 80, brightness: 90),
         ColorMath.rgb(hue: 210, saturation: 35, brightness: 45),
     ]
 
-    /// Colours DrawBot tries by itself to check what it learned (and asks the user to
+    /// Colors DrawBot tries by itself to check what it learned (and asks the user to
     /// demonstrate if the try fails).
     public static let testColors: [RGB] = [
         ColorMath.rgb(hue: 135, saturation: 55, brightness: 70),
@@ -43,7 +43,7 @@ public enum ColorLearner {
     /// Distance (pt) within which a pointer gesture counts as "the same spot" in every demo.
     static let fixedTolerance = 10.0
 
-    /// Learns a profile from `demos` (≥ 2). `canvas` is where DrawBot will draw: colour pickers
+    /// Learns a profile from `demos` (≥ 2). `canvas` is where DrawBot will draw: color pickers
     /// often pop up on top of it, so presses there are NOT ignored, but a picker that covers the
     /// canvas must be closed again at the end of every demonstration (otherwise DrawBot would
     /// draw into it). `screens` are the displays' CG frames (for plausibility checks).
@@ -53,7 +53,7 @@ public enum ColorLearner {
         guard demos.count >= 2 else { return .failure(Failure("DrawBot needs at least two demonstrations.")) }
         let actionLists = demos.map { segment($0.inputs) }
         for (i, list) in actionLists.enumerated() where list.isEmpty {
-            return .failure(Failure("DrawBot didn't see any clicks or typing for colour \(i + 1) (\(demos[i].color.hex))."))
+            return .failure(Failure("DrawBot didn't see any clicks or typing for color \(i + 1) (\(demos[i].color.hex))."))
         }
 
         // Reference: the demo with the fewest actions (latest on ties); align the rest to it.
@@ -79,7 +79,7 @@ public enum ColorLearner {
         let previous = order.map { demos[$0].previousColor }
         let kept = groups.indices.filter { keep[$0] }.map { groups[$0] }
         guard !kept.isEmpty else {
-            return .failure(Failure("The demonstrations had nothing in common. Select both colours the same way (same controls, same order)."))
+            return .failure(Failure("The demonstrations had nothing in common. Select both colors the same way (same controls, same order)."))
         }
         // Delays: most of the shortest pause the user left before each action, capped. Not much
         // shorter: dialogs and popups often animate open, and a click that arrives early is lost.
@@ -119,7 +119,7 @@ public enum ColorLearner {
             spreads[k] = maxPairwise(gestures.map(\.up))
         }
         let varying = obsByGroup.keys.filter { (spreads[$0] ?? 0) > fixedTolerance }.sorted()
-        // Gestures that land on the canvas in every demo. Colour pickers often pop up over the
+        // Gestures that land on the canvas in every demo. Color pickers often pop up over the
         // canvas, so these may be picker clicks — or test strokes the user painted.
         let onCanvas = Set(obsByGroup.keys.filter { k in canvas.map { c in obsByGroup[k]!.allSatisfy { c.contains($0.up) } } ?? false })
         // Not using a moving control costs less when it's on the canvas (probably a test stroke).
@@ -130,9 +130,9 @@ public enum ColorLearner {
         if typingDetermines || varying.isEmpty {
             if !typingDetermines {
                 if !unresolvedTyping.isEmpty {
-                    return .failure(Failure("DrawBot couldn't tell how what you typed (\(unresolvedTyping.prefix(3).joined(separator: ", "))) relates to the colour. Type the hex code, RGB or HSB values exactly as DrawBot shows them."))
+                    return .failure(Failure("DrawBot couldn't tell how what you typed (\(unresolvedTyping.prefix(3).joined(separator: ", "))) relates to the color. Type the hex code, RGB or HSB values exactly as DrawBot shows them."))
                 }
-                return .failure(Failure("Nothing changed between the two colours: every click landed on the same spot and nothing colour-related was typed. Select each colour inside the picker itself (or type its hex code)."))
+                return .failure(Failure("Nothing changed between the two colors: every click landed on the same spot and nothing color-related was typed. Select each color inside the picker itself (or type its hex code)."))
             }
             let h = Hypothesis(space: nil, fits: Array(repeating: nil, count: varying.count), score: 0,
                                key: "typed:" + signature(kept, typing: typingSteps))
@@ -140,7 +140,7 @@ public enum ColorLearner {
         } else {
             var all: [Hypothesis] = []
             for space in PickerColorSpace.allCases {
-                // Typed parameters must belong to this space (unless typing pins the colour).
+                // Typed parameters must belong to this space (unless typing pins the color).
                 guard typedParams.isSubset(of: Set(space.params)) else { continue }
                 let needed = Set(space.params).subtracting(typedParams)
                 let controls = varying.map { obsByGroup[$0]! }
@@ -155,10 +155,10 @@ public enum ColorLearner {
             best = all.filter { !rejected.contains($0.key) }.max { $0.score < $1.score }
         }
         guard let hyp = best else {
-            return .failure(Failure("DrawBot couldn't work out how this colour picker turns positions into colours. Typing the hex code into the picker's hex field always works, if your app has one."))
+            return .failure(Failure("DrawBot couldn't work out how this color picker turns positions into colors. Typing the hex code into the picker's hex field always works, if your app has one."))
         }
 
-        // Canvas gestures that don't set the colour and aren't a button clicked on the same spot
+        // Canvas gestures that don't set the color and aren't a button clicked on the same spot
         // every time (drags, dabs that moved) are test strokes: never replay them.
         func isColorControl(_ k: Int) -> Bool {
             guard let vi = varying.firstIndex(of: k) else { return false }
@@ -195,7 +195,7 @@ public enum ColorLearner {
             if let vi = varying.firstIndex(of: k), let fit = hyp.fits[vi] {
                 mapping = fit.mapping
                 describeParts.append(mapping.describe)
-                // Did the user grab the knob where the previous colour left it?
+                // Did the user grab the knob where the previous color left it?
                 let withPrev = obs.filter { $0.isDrag && $0.previous != nil }
                 let grabbed = withPrev.filter { o in
                     distance(mapping.point(for: o.previous!), o.down) <= 14 && distance(o.down, o.up) > 14
@@ -215,7 +215,7 @@ public enum ColorLearner {
         var uniqueSlots: [String] = []
         for s in typedSlots where !uniqueSlots.contains(s) { uniqueSlots.append(s) }
         if !uniqueSlots.isEmpty {
-            summary = "Types the colour's " + listFormat(uniqueSlots)
+            summary = "Types the color's " + listFormat(uniqueSlots)
             if !describeParts.isEmpty { summary += " and clicks " + listFormat(describeParts) }
         } else {
             summary = "Clicks " + listFormat(describeParts)
@@ -350,7 +350,7 @@ public enum ColorLearner {
 
     // MARK: - Pickers on top of the canvas
 
-    /// A colour picker that pops up over the canvas (a popover, a floating dialog) must be in
+    /// A color picker that pops up over the canvas (a popover, a floating dialog) must be in
     /// the same state at the start and end of every selection, and closed at the end: DrawBot's
     /// obstruction check cannot see a popup inside the drawing app's own window, so it would
     /// draw straight into an open picker. Returns a message for the user when the demonstrations
@@ -367,13 +367,13 @@ public enum ColorLearner {
                 return false
             }
             if skipped {
-                return "Your colour picker sits on top of the canvas, so DrawBot has to open it before every colour and close it again before drawing. In one demonstration you clicked something first (probably to open the picker) that you didn't click in the other, which usually means the picker was still open. Start over, and for every colour: start with the picker closed, open it, choose the colour, close it again, then press Done."
+                return "Your color picker sits on top of the canvas, so DrawBot has to open it before every color and close it again before drawing. In one demonstration you clicked something first (probably to open the picker) that you didn't click in the other, which usually means the picker was still open. Start over, and for every color: start with the picker closed, open it, choose the color, close it again, then press Done."
             }
         }
         // 2. Every demo must end with the picker closed: the last shared action must be a fixed
-        //    click (a close / OK button, the toggle again) or a key (Return, Esc), not a colour control.
+        //    click (a close / OK button, the toggle again) or a key (Return, Esc), not a color control.
         if lastIsColorControl {
-            return "Your colour picker sits on top of the canvas, but it was still open when you pressed Done. DrawBot would draw into it. Start over, and for every colour: open the picker, choose the colour, close the picker (its close or OK button, or the button that opened it), then press Done."
+            return "Your color picker sits on top of the canvas, but it was still open when you pressed Done. DrawBot would draw into it. Start over, and for every color: open the picker, choose the color, close the picker (its close or OK button, or the button that opened it), then press Done."
         }
         return nil
     }
@@ -594,7 +594,7 @@ public enum ColorLearner {
         }
     }
 
-    /// Every interpretation of `token` that matches colour `c`.
+    /// Every interpretation of `token` that matches color `c`.
     static func candidates(_ token: String, for c: RGB) -> Set<ValueSlot> {
         var out = Set<ValueSlot>()
         if token.count == 6, token.allSatisfy(\.isHexDigit), let v = Int(token, radix: 16) {
@@ -777,7 +777,7 @@ public enum ColorLearner {
                     let scale = (f.wr * f.wr + f.wi * f.wi).squareRoot()
                     guard scale >= (rp == nil ? 15 : 20), scale <= 1200 else { continue }
                     if let b = bounds?.insetBy(dx: -60, dy: -60), !b.contains(CGPoint(x: f.cx, y: f.cy)) { continue }
-                    let pm = PolarMap(radius: rp, centreX: f.cx, centreY: f.cy, wRe: f.wr, wIm: f.wi, direction: dir)
+                    let pm = PolarMap(radius: rp, centerX: f.cx, centerY: f.cy, wRe: f.wr, wIm: f.wi, direction: dir)
                     let label = rp.map { "polar(\($0.rawValue),\(Int(dir)))" } ?? "ring(\(Int(dir)))"
                     out.append(ControlFit(form: rp.map { .polar($0) } ?? .ring, mapping: .polar(pm),
                                           score: -f.rms * residualWeight, linear: [],
@@ -905,7 +905,7 @@ public enum ColorLearner {
         return s
     }
 
-    /// Structure of the kept actions (so a rejected typed interpretation is recognised).
+    /// Structure of the kept actions (so a rejected typed interpretation is recognized).
     static func signature(_ kept: [[Action]], typing: [Int: TypingAnalysis]) -> String {
         kept.indices.map { k -> String in
             if let t = typing[k] {

@@ -38,7 +38,7 @@ public enum StrokePlanner {
         return result
     }
 
-    /// Converts runs to screen strokes from the centre of startCol to the centre of endCol.
+    /// Converts runs to screen strokes from the center of startCol to the center of endCol.
     /// Single-cell runs become dots (start == end). `layout.columns/rows` must equal `q`'s size.
     /// (Defensive: runs whose row is outside the layout, or that lie entirely outside its
     /// columns, are dropped; partially outside runs are clamped to the layout's columns.)

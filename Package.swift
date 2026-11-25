@@ -5,13 +5,13 @@ let package = Package(
     name: "DrawBot",
     platforms: [.macOS(.v13)],
     targets: [
-        // Pure logic: image loading, colour quantisation, stroke planning, geometry. No AppKit.
+        // Pure logic: image loading, color quantization, stroke planning, geometry. No AppKit.
         .target(name: "DrawBotCore", path: "Sources/DrawBotCore"),
         // macOS system layer: synthetic mouse events, permissions, hotkeys, window inspection, drawing engine.
         .target(name: "DrawBotSystem", dependencies: ["DrawBotCore"], path: "Sources/DrawBotSystem"),
-        // The menu-bar app: UI, canvas selection overlay, colour prompts, orchestration.
+        // The menu-bar app: UI, canvas selection overlay, color prompts, orchestration.
         .executableTarget(name: "DrawBot", dependencies: ["DrawBotCore", "DrawBotSystem"], path: "Sources/DrawBot"),
-        // Dev tool: runs Colour Learn on recorded demonstrations (JSON in, JSON out). See Tools/README.md.
+        // Dev tool: runs Color Learn on recorded demonstrations (JSON in, JSON out). See Tools/README.md.
         .executableTarget(name: "colorlearn-harness", dependencies: ["DrawBotCore"], path: "Tools/ColorLearnHarness"),
         // Dev tool: a separate app that plays scripted real input and records it with DrawBot's recorder.
         // Built into build/DrawBotTestRig.app by scripts/build_testrig.sh. See Tools/README.md.

@@ -96,7 +96,7 @@ final class LiveReplaySink: ReplayEventSink {
     func sleep(_ seconds: TimeInterval) { PreciseClock.sleep(seconds) }
 }
 
-/// Plays Colour Learn `ReplayAction`s (clicks, drags, keystrokes, clipboard) on a worker thread.
+/// Plays Color Learn `ReplayAction`s (clicks, drags, keystrokes, clipboard) on a worker thread.
 ///
 /// Call `run` from the main thread; `completion` is called on the main queue exactly once. Stops
 /// early on Escape, `requestStop`, a lost Accessibility permission, or (when

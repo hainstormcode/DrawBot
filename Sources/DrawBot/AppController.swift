@@ -22,7 +22,7 @@ enum DrawTarget: Equatable {
     }
 }
 
-/// One colour of a run, frozen at Start.
+/// One color of a run, frozen at Start.
 struct RunStep {
     let paletteIndex: Int
     let color: RGB
@@ -40,9 +40,9 @@ struct RunPlan {
     let autoCopyHex: Bool
     let penSize: Double
     let startedAt: Date
-    /// The learned colour picker of the target app (Colour Learn), if any.
+    /// The learned color picker of the target app (Color Learn), if any.
     let profile: ColorPickerProfile?
-    /// Colour Learn selects every colour by itself instead of prompting.
+    /// Color Learn selects every color by itself instead of prompting.
     let automatic: Bool
 }
 
@@ -53,12 +53,12 @@ struct RunPlan {
 ///                         ▲   │ Skip                  │ obstructed(i,r) ◀┘ (Check again / Draw anyway)
 ///                         │   ▼                       │ Esc → back to the prompt
 ///     drawing(i) ──completed──▶ awaitingColor(i+1) … ──▶ finished ──Close──▶ ready
-///     drawing(i) ──paused──▶ paused(i,r) ──Resume──▶ preparing(i,r)   (Skip rest → next colour)
+///     drawing(i) ──paused──▶ paused(i,r) ──Resume──▶ preparing(i,r)   (Skip rest → next color)
 ///     any ──Stop──▶ ready (prompt/HUD hidden, Esc hotkey unregistered)
 ///
-/// Colour Learn (automatic colour selection) replaces the prompt with
+/// Color Learn (automatic color selection) replaces the prompt with
 ///     selectingColor(i) ──replayed──▶ preparing(i,0) …   (interrupted → awaitingColor(i) prompt)
-/// and teaching DrawBot a colour picker is the `learning` phase (see ColorLearnSession).
+/// and teaching DrawBot a color picker is the `learning` phase (see ColorLearnSession).
 @MainActor
 final class AppController: ObservableObject {
     enum Phase: Equatable {
@@ -71,9 +71,9 @@ final class AppController: ObservableObject {
         case drawing(step: Int)
         case paused(step: Int, resumeIndex: Int, reason: String)
         case finished
-        /// Colour Learn is selecting this step's colour in the drawing app.
+        /// Color Learn is selecting this step's color in the drawing app.
         case selectingColor(step: Int)
-        /// A Colour Learn lesson is running.
+        /// A Color Learn lesson is running.
         case learning
     }
 
@@ -99,7 +99,7 @@ final class AppController: ObservableObject {
     /// macOS silently dropped our events (stale TCC entry after a re-sign): the user must remove
     /// and re-add DrawBot in the Accessibility list, then relaunch.
     @Published var needsRegrant = false
-    /// Learned colour pickers, keyed by app (Colour Learn).
+    /// Learned color pickers, keyed by app (Color Learn).
     @Published private(set) var colorProfiles: [String: ColorPickerProfile] = SettingsStore.loadProfiles()
 
     // MARK: Private state
@@ -119,12 +119,12 @@ final class AppController: ObservableObject {
     /// ⌃⌥⌘P / "Show DrawBot" pressed while drawing: the panel is shown once the engine has paused
     /// (showing it right away could put it under the cursor and steal focus mid-stroke).
     private var showPanelAfterPass = false
-    /// Colour Learn: replays learned colour-picker input.
+    /// Color Learn: replays learned color-picker input.
     private let replayer = InputReplayer()
     private var learnSession: ColorLearnSession?
-    /// Colour each app's picker currently shows, when DrawBot set it (for knob-dragging pickers).
+    /// Color each app's picker currently shows, when DrawBot set it (for knob-dragging pickers).
     private var pickerColor: [String: RGB] = [:]
-    /// Shown in the colour prompt after automatic selection was interrupted.
+    /// Shown in the color prompt after automatic selection was interrupted.
     private var autoNote = ""
 
     private static let escHotKeyID: UInt32 = 100
@@ -189,7 +189,7 @@ final class AppController: ObservableObject {
             && accessibilityTrusted && !isProcessing && !isLoadingImage && resultIsCurrent
     }
 
-    /// A colour pass is under way (DrawBot is activating the target, counting down or drawing).
+    /// A color pass is under way (DrawBot is activating the target, counting down or drawing).
     private var passActive: Bool {
         switch phase {
         case .preparing, .countdown, .drawing, .selectingColor: return true
@@ -211,7 +211,7 @@ final class AppController: ObservableObject {
             return image == nil ? "Choose an image to see a preview." : "Processing…"
         }
         let drawable = result.quantized.palette.indices.filter { !skipSet.contains($0) && result.quantized.counts[$0] > 0 }
-        var parts = ["\(drawable.count) colour\(drawable.count == 1 ? "" : "s")"]
+        var parts = ["\(drawable.count) color\(drawable.count == 1 ? "" : "s")"]
         if result.key.isPreviewLayout {
             parts.append("select a canvas to plan strokes")
         } else {
@@ -260,12 +260,12 @@ final class AppController: ObservableObject {
         return "\(imageName ?? "Image") — \(image.width) × \(image.height) px"
     }
 
-    /// Colour and width the Test Canvas uses for incoming strokes.
+    /// Color and width the Test Canvas uses for incoming strokes.
     var testCanvasStrokeStyle: (NSColor, CGFloat) {
         let width = CGFloat(plan?.penSize ?? settings.penSize)
         switch phase {
         case .drawing(let s), .preparing(let s, _), .countdown(let s, _, _):
-            // Colour Learn really selects colours in the Test Canvas's own picker: draw with it.
+            // Color Learn really selects colors in the Test Canvas's own picker: draw with it.
             if let plan, plan.automatic, let tc = testCanvas { return (tc.pickedColor.nsColor, width) }
             if let plan, plan.steps.indices.contains(s) { return (plan.steps[s].color.nsColor, width) }
         default: break
@@ -554,9 +554,9 @@ final class AppController: ObservableObject {
         reprocess()
     }
 
-    // MARK: Colour Learn
+    // MARK: Color Learn
 
-    /// Key under which the target's learned colour picker is stored: the app, plus the website
+    /// Key under which the target's learned color picker is stored: the app, plus the website
     /// for browsers (each web paint app has its own picker).
     var targetAppKey: String? {
         switch target {
@@ -577,12 +577,12 @@ final class AppController: ObservableObject {
 
     var learnStatusText: String {
         guard canvas != nil, targetAppKey != nil else {
-            return "Select a canvas first. DrawBot learns the colour picker of the app under the canvas."
+            return "Select a canvas first. DrawBot learns the color picker of the app under the canvas."
         }
         if let p = currentProfile {
             return "Learned for \(targetDescription): \(p.summary)"
         }
-        return "DrawBot hasn't learned \(targetDescription)'s colour picker yet. Click Learn and select two colours while DrawBot watches."
+        return "DrawBot hasn't learned \(targetDescription)'s color picker yet. Click Learn and select two colors while DrawBot watches."
     }
 
     /// Full Accessibility is needed to watch the keyboard (typing a hex code).
@@ -595,7 +595,7 @@ final class AppController: ObservableObject {
         if phase == .finished { closeDonePrompt() }
         refreshPermission()
         guard accessibilityTrusted else {
-            statusMessage = "DrawBot needs Accessibility permission to learn and use colour pickers."
+            statusMessage = "DrawBot needs Accessibility permission to learn and use color pickers."
             showControlPanel()
             return
         }
@@ -644,7 +644,7 @@ final class AppController: ObservableObject {
         guard phase == .learning else { return }
         phase = .ready
         if let p = currentProfile {
-            statusMessage = "Colour picker learned for \(p.appName)."
+            statusMessage = "Color picker learned for \(p.appName)."
         }
         if controlPanelWasVisible { controlPanel.show() }
     }
@@ -669,11 +669,11 @@ final class AppController: ObservableObject {
         }
     }
 
-    /// Colour Learn: select this step's colour by replaying the learned picker input, then draw.
+    /// Color Learn: select this step's color by replaying the learned picker input, then draw.
     private func autoSelect(step: Int) {
         guard let plan, let profile = plan.profile, plan.steps.indices.contains(step) else { return }
         if replayer.isRunning {
-            // A cancelled selection is still letting go of the mouse.
+            // A canceled selection is still letting go of the mouse.
             let token = passToken
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
                 MainActor.assumeIsolated {
@@ -703,7 +703,7 @@ final class AppController: ObservableObject {
                         self.unregisterEsc()
                         self.hud.hide()
                         self.phase = .awaitingColor(step: step)
-                        self.autoNote = "Couldn't bring \(app.localizedName ?? "the drawing app") to the front to select the colour. Click its window once (outside the canvas), then press Select for me."
+                        self.autoNote = "Couldn't bring \(app.localizedName ?? "the drawing app") to the front to select the color. Click its window once (outside the canvas), then press Select for me."
                         self.showPrompt()
                         return
                     }
@@ -736,7 +736,7 @@ final class AppController: ObservableObject {
             unregisterEsc()
             hud.hide()
             phase = .awaitingColor(step: step)
-            autoNote = "Automatic colour selection stopped (\(reason)). Select the colour yourself and press Continue, or press Select for me."
+            autoNote = "Automatic color selection stopped (\(reason)). Select the color yourself and press Continue, or press Select for me."
             showPrompt()
             if case DrawingEngine.Reason.permissionLost = reason { refreshPermission() }
         }
@@ -917,7 +917,7 @@ final class AppController: ObservableObject {
                            estimate: est.indices.contains(i) ? est[i] : 0)
         }
         guard !steps.isEmpty else {
-            statusMessage = "Nothing to draw — every colour is skipped."
+            statusMessage = "Nothing to draw — every color is skipped."
             showControlPanel()
             return
         }
@@ -928,7 +928,7 @@ final class AppController: ObservableObject {
         if automatic && profile == nil {
             statusMessage = target == .none
                 ? "DrawBot couldn't tell which app is under the canvas. Select the canvas again."
-                : "DrawBot hasn't learned \(targetDescription)'s colour picker yet. Click Learn Colour Picker…, or set Colour selection to “Ask me”."
+                : "DrawBot hasn't learned \(targetDescription)'s color picker yet. Click Learn Color Picker…, or set Color selection to “Ask me”."
             showControlPanel()
             return
         }
@@ -945,7 +945,7 @@ final class AppController: ObservableObject {
         }
         phase = .awaitingColor(step: 0)
         showPrompt()
-        // Bring the drawing app forward so the user can pick the first colour straight away.
+        // Bring the drawing app forward so the user can pick the first color straight away.
         if case .app(let app) = target, !app.isTerminated {
             AppActivator.activate(app) { _ in }
         }
@@ -1138,7 +1138,7 @@ final class AppController: ObservableObject {
             return
         }
         guard let plan, plan.steps.indices.contains(step) else {
-            endRun(message: "Stopped: internal error (no colour to draw)")
+            endRun(message: "Stopped: internal error (no color to draw)")
             return
         }
         let strokes = plan.steps[step].strokes
@@ -1204,7 +1204,7 @@ final class AppController: ObservableObject {
         passToken += 1
         unregisterEsc()
         hud.hide()
-        phase = resumeIndex == 0 ? .awaitingColor(step: step) : .paused(step: step, resumeIndex: resumeIndex, reason: "Cancelled")
+        phase = resumeIndex == 0 ? .awaitingColor(step: step) : .paused(step: step, resumeIndex: resumeIndex, reason: "Canceled")
         showPrompt()
     }
 
@@ -1233,8 +1233,8 @@ final class AppController: ObservableObject {
         let elapsed = Date().timeIntervalSince(plan.startedAt)
         let strokes = plan.steps.reduce(0) { $0 + $1.strokes.count }
         phase = .finished
-        statusMessage = "Done — \(plan.steps.count) colour\(plan.steps.count == 1 ? "" : "s"), \(strokes) strokes."
-        prompt.show(PromptContent(mode: .done(summary: "Painted \(plan.steps.count) colour\(plan.steps.count == 1 ? "" : "s") (\(strokes) strokes) in \(TimeEstimator.format(elapsed))."),
+        statusMessage = "Done — \(plan.steps.count) color\(plan.steps.count == 1 ? "" : "s"), \(strokes) strokes."
+        prompt.show(PromptContent(mode: .done(summary: "Painted \(plan.steps.count) color\(plan.steps.count == 1 ? "" : "s") (\(strokes) strokes) in \(TimeEstimator.format(elapsed))."),
                                   color: nil),
                     canvasCG: plan.canvas, autoCopyHex: false)
         self.plan = nil
@@ -1342,15 +1342,15 @@ final class AppController: ObservableObject {
         switch phase {
         case .ready: return canStart ? "Ready to draw" : "Not ready"
         case .selectingCanvas: return "Selecting canvas…"
-        case .awaitingColor(let s): return "Waiting for colour \(s + 1)"
+        case .awaitingColor(let s): return "Waiting for color \(s + 1)"
         case .preparing: return "Getting ready…"
         case .obstructed: return "Canvas is covered"
         case .countdown(_, _, let n): return "Starting in \(n)…"
-        case .drawing(let s): return "Drawing colour \(s + 1) · \(Int(drawProgress * 100))%"
+        case .drawing(let s): return "Drawing color \(s + 1) · \(Int(drawProgress * 100))%"
         case .paused(_, _, let reason): return "Paused — \(reason)"
         case .finished: return "Done!"
-        case .selectingColor(let s): return "Selecting colour \(s + 1)…"
-        case .learning: return "Learning the colour picker…"
+        case .selectingColor(let s): return "Selecting color \(s + 1)…"
+        case .learning: return "Learning the color picker…"
         }
     }
 }

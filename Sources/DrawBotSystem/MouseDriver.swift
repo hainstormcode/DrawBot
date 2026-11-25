@@ -35,7 +35,7 @@ final class CGEventPostingSink: MouseEventSink {
         if let source {
             // Never freeze the user's hardware mouse/keyboard after one of our events. The header
             // says the default filter already passes local events through, but the default
-            // suppression interval is 0.25 s and the behaviour has differed across macOS releases,
+            // suppression interval is 0.25 s and the behavior has differed across macOS releases,
             // so we set both explicitly. This matters for two reasons: (1) the physical mouse must
             // keep moving the cursor during a drawing pass, or user-movement detection (pause)
             // can't see it; (2) the physical Esc key must keep reaching the key-state table and
@@ -178,7 +178,7 @@ public final class MouseDriver {
     }
 
     /// Clamps `p` into `r` (standardized; max edges inclusive). Non-finite coordinates map to the
-    /// rect's centre. A null / non-finite rect leaves finite points unchanged.
+    /// rect's center. A null / non-finite rect leaves finite points unchanged.
     public static func clamp(_ p: CGPoint, to r: CGRect) -> CGPoint {
         let r = r.standardized
         guard !r.isNull, r.minX.isFinite, r.maxX.isFinite, r.minY.isFinite, r.maxY.isFinite else {

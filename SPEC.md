@@ -3,7 +3,7 @@
 A macOS menu-bar app. The user picks an image, drags a rectangle anywhere on screen (any app,
 including full-screen apps) to define the canvas, and DrawBot moves the real cursor with
 synthetic mouse events to paint the image in whatever drawing app is under that rectangle — one
-colour at a time. Before each colour it prompts the user to select that colour in the drawing app,
+color at a time. Before each color it prompts the user to select that color in the drawing app,
 then continues.
 
 Swift Package (tools 5.9, Swift 5 language mode, macOS 13+). Built into `build/DrawBot.app`
@@ -13,7 +13,7 @@ by `scripts/build_app.sh`. Three modules:
 |---|---|---|---|
 | DrawBotCore | Sources/DrawBotCore | Agent A | Pure logic. CoreGraphics/ImageIO/Foundation only, no AppKit. Unit-tested. |
 | DrawBotSystem | Sources/DrawBotSystem | Agent B | macOS system layer: CGEvent mouse posting, permissions, hotkeys, window inspection, app activation, drawing engine. |
-| DrawBot (exe) | Sources/DrawBot | Agent C | AppKit + SwiftUI app: menu bar, control panel, selection overlay, colour prompt, HUD, orchestration, bundle/build script, README. |
+| DrawBot (exe) | Sources/DrawBot | Agent C | AppKit + SwiftUI app: menu bar, control panel, selection overlay, color prompt, HUD, orchestration, bundle/build script, README. |
 
 `Sources/DrawBotCore/Types.swift` is fixed shared vocabulary (owned by the lead). Every other
 file in Core and System currently contains a **stub** with the exact public signatures and doc
@@ -35,18 +35,18 @@ is genuinely wrong, say so in your final report instead of silently changing it.
 
 1. `ImageLoader.loadCGImage(url)` (orientation-correct).
 2. Canvas rect (CG global) + pen size → `GridLayout(canvas:penSize:)` → `columns × rows` grid.
-3. `ImageLoader.rasterize(image, width: columns, height: rows)` — aspect-fit, centred,
+3. `ImageLoader.rasterize(image, width: columns, height: rows)` — aspect-fit, centerd,
    letterbox transparent.
 4. `Quantizer.quantize(raster, options)` — k-means in Lab, ≤ maxColors, merge near-duplicates.
-5. Skip set: palette indices the user doesn't want drawn (default: near-white colours, since the
+5. Skip set: palette indices the user doesn't want drawn (default: near-white colors, since the
    canvas is usually white). `ColorMath.order(q, by:)` gives drawing order (default light→dark,
    so darker detail lands on top of any brush bleed).
-6. Per colour: `StrokePlanner.strokes(for: idx, in: q, layout:)` → `[ScreenStroke]` (serpentine
+6. Per color: `StrokePlanner.strokes(for: idx, in: q, layout:)` → `[ScreenStroke]` (serpentine
    horizontal runs, one press-drag-release per run; single cells are dots).
 7. `DrawingEngine.draw(strokes:clampRect: canvas …)`.
 
 Preview before a canvas exists: use a layout of the image's aspect ratio at ~240 columns. Recompute
-when canvas, pen size or colour count change (off the main thread; coalesce rapid changes).
+when canvas, pen size or color count change (off the main thread; coalesce rapid changes).
 
 ## Synthetic input (Agent B) — requirements
 
@@ -80,7 +80,7 @@ when canvas, pen size or colour count change (off the main thread; coalesce rapi
   over other apps' full-screen spaces. All DrawBot windows/panels use
   `collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]` and a high level
   (`.floating` for panels, `.screenSaver` for the selection overlay).
-* The colour prompt and the drawing HUD are **non-activating** `NSPanel`s
+* The color prompt and the drawing HUD are **non-activating** `NSPanel`s
   (`.nonactivatingPanel`), so clicking "Continue" does not steal focus from the drawing app.
 * While drawing, **no DrawBot window may overlap the canvas** (it would receive the clicks). The
   prompt is ordered out; the HUD is `ignoresMouseEvents = true` and placed outside the canvas
@@ -88,7 +88,7 @@ when canvas, pen size or colour count change (off the main thread; coalesce rapi
   at the top-right corner anyway — it is click-through).
 * Target app = `WindowInspector.targetApp(for: canvas)` captured right after the canvas is
   selected (after the overlay is closed and ~150 ms later).
-* Before each colour pass: (1) order out prompt; (2) `AppActivator.activate(target)`; (3) wait
+* Before each color pass: (1) order out prompt; (2) `AppActivator.activate(target)`; (3) wait
   250 ms; (4) `WindowInspector.obstructions(of: canvas, targetPID:)` — if non-empty, show a warning
   in the prompt naming the app(s) ("Something from Preview is covering the canvas — move it
   away") with buttons "Check again" and "Draw anyway"; (5) countdown (configurable, default 1 s)
@@ -96,7 +96,7 @@ when canvas, pen size or colour count change (off the main thread; coalesce rapi
 * If DrawBot itself is the target (the built-in Test Canvas window) skip activation and skip
   self-obstruction checks.
 
-## App behaviour (Agent C)
+## App behavior (Agent C)
 
 Menu bar item (SF Symbol `paintbrush.pointed` / fallback `paintbrush`) with menu:
 Show DrawBot (⌃⌥⌘P) · Select Canvas… (⌃⌥⌘S) · Start/Continue (⌃⌥⌘↩) · Stop (Esc while
@@ -111,39 +111,39 @@ drawing, ⌃⌥⌘.) · Open Test Canvas · Permissions… · Quit. Global hotke
   shows file name and pixel size.
 * Canvas: "Select Canvas (⌃⌥⌘S)" + readout "640 × 480 pt at (x, y) on <screen name>"; target
   app name.
-* Settings (persisted in UserDefaults): Colours (stepper/slider 1–32, default 8); Merge
-  similar colours (ΔE slider 0–30, default 6); Pen size in points (1–40, default 4, plus helper
+* Settings (persisted in UserDefaults): Colors (stepper/slider 1–32, default 8); Merge
+  similar colors (ΔE slider 0–30, default 6); Pen size in points (1–40, default 4, plus helper
   text "Set your brush to ≈ N px (≈ 2N px on a Retina display at 100% zoom)" using the canvas
-  screen's backingScaleFactor); Speed preset (picker) ; Colour order (picker); Countdown seconds
-  (0–5, default 1); "Pause if I move the mouse" (default on); "Skip near-white colours"
+  screen's backingScaleFactor); Speed preset (picker) ; Color order (picker); Countdown seconds
+  (0–5, default 1); "Pause if I move the mouse" (default on); "Skip near-white colors"
   (default on).
-* Preview: quantised image (nearest-neighbour scaled, checkerboard where transparent) and a
-  palette strip — each swatch shows the colour, hex, % of area; click a swatch to toggle skip
-  (skipped swatches crossed out). Footer: "N colours · M strokes · ≈ estimated time".
+* Preview: quantized image (nearest-neighbor scaled, checkerboard where transparent) and a
+  palette strip — each swatch shows the color, hex, % of area; click a swatch to toggle skip
+  (skipped swatches crossed out). Footer: "N colors · M strokes · ≈ estimated time".
 * "Start Drawing" button (disabled until image + canvas + permission).
 
 **Canvas selection overlay**: one borderless transparent window per NSScreen, level
-`.screenSaver`, behaviour `[.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]`, view
+`.screenSaver`, behavior `[.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]`, view
 `acceptsFirstMouse = true`, crosshair cursor, light dim (black 15%) except the selected rect
-(clear with a 1 px white + 1 px black outline), live size label. Instruction text centred:
+(clear with a 1 px white + 1 px black outline), live size label. Instruction text centerd:
 "Drag to select the drawing area · Esc to cancel". Drag constrained to the screen where it
 began. Esc cancels (needs key window: `NSApp.activate(ignoringOtherApps: true)` + `makeKey`).
 Rect < 8×8 pt is ignored (keep overlay up). On mouse-up: close all overlay windows, convert to CG
 global with Geometry, store, then capture target app.
 
-**Colour prompt** (non-activating floating NSPanel, placed on the canvas's screen off the canvas
-if possible): big swatch, "Colour 2 of 6", hex (with "Copy hex" button that copies without '#'
+**Color prompt** (non-activating floating NSPanel, placed on the canvas's screen off the canvas
+if possible): big swatch, "Color 2 of 6", hex (with "Copy hex" button that copies without '#'
 — also copies on show if "auto-copy hex" setting on, default on), RGB, HSB, approximate name,
-"≈ N strokes". Text: "Select this colour in your drawing app, then press Continue (⌃⌥⌘↩)".
-Buttons: Continue (default), Skip this colour, Stop. When paused (mouse moved), the same panel
-shows "Paused — <reason>" with Resume / Skip rest of this colour / Stop. When finished: "Done!"
+"≈ N strokes". Text: "Select this color in your drawing app, then press Continue (⌃⌥⌘↩)".
+Buttons: Continue (default), Skip this color, Stop. When paused (mouse moved), the same panel
+shows "Paused — <reason>" with Resume / Skip rest of this color / Stop. When finished: "Done!"
 with Close.
 
-**HUD** while drawing: small non-activating click-through panel: "Drawing colour 2/6 ·
+**HUD** while drawing: small non-activating click-through panel: "Drawing color 2/6 ·
 43% · Esc to stop", swatch. Also shows the countdown.
 
 **Test Canvas**: a normal window (800×600) with a white NSView that records drags as lines
-(width = pen size, current colour = the colour DrawBot is currently drawing, black otherwise), a
+(width = pen size, current color = the color DrawBot is currently drawing, black otherwise), a
 Clear button. `acceptsFirstMouse = true`. Lets the user verify DrawBot without a paint app.
 
 **State machine** (AppController, main thread): idle → selectingCanvas → ready → awaitingColor(i)

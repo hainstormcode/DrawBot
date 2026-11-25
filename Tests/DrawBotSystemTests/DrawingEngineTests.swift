@@ -630,7 +630,7 @@ final class WindowInspectorTests: XCTestCase {
     }
 
     func testTargetWindowPrefersNormalWindowsAndSkipsOwnPanels() {
-        let canvas = CGRect(x: 100, y: 100, width: 400, height: 400) // centre (300, 300)
+        let canvas = CGRect(x: 100, y: 100, width: 400, height: 400) // center (300, 300)
         let own: pid_t = 99
         let windows = [
             w(1, pid: own, "DrawBot", CGRect(x: 0, y: 0, width: 800, height: 800), layer: 3),   // our floating panel

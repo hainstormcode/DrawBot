@@ -7,9 +7,9 @@ struct HUDContent: Equatable {
         case preparing
         case countdown(Int)
         case drawing(fraction: Double)
-        /// Colour Learn is selecting this step's colour in the drawing app.
+        /// Color Learn is selecting this step's color in the drawing app.
         case selectingColor
-        /// Colour Learn is trying out what it learned.
+        /// Color Learn is trying out what it learned.
         case learnTrying
     }
     var mode: Mode
@@ -89,7 +89,7 @@ struct HUDView: View {
     }
 
     private var text: String {
-        let step = "colour \(content.stepNumber)/\(content.stepCount)"
+        let step = "color \(content.stepNumber)/\(content.stepCount)"
         switch content.mode {
         case .preparing:
             return "Getting ready · \(step) · Esc to cancel"
@@ -103,7 +103,7 @@ struct HUDView: View {
         case .selectingColor:
             return "Selecting \(step) for you · hands off the mouse · Esc to cancel"
         case .learnTrying:
-            return "Trying out your colour picker · hands off the mouse · Esc to cancel"
+            return "Trying out your color picker · hands off the mouse · Esc to cancel"
         }
     }
 }

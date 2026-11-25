@@ -1,8 +1,8 @@
 import AppKit
 import DrawBotCore
 
-/// The Test Canvas's colour picker: a saturation × brightness square and a hue strip, like the
-/// pickers of most paint apps, so Colour Learn can be tried without one.
+/// The Test Canvas's color picker: a saturation × brightness square and a hue strip, like the
+/// pickers of most paint apps, so Color Learn can be tried without one.
 final class MiniColorPickerView: NSView {
     private(set) var hue: Double = 0
     private(set) var saturation: Double = 0
@@ -25,7 +25,7 @@ final class MiniColorPickerView: NSView {
 
     func setColor(_ c: RGB, notify: Bool = false) {
         let hsb = ColorMath.hsb(c)
-        // Keep the current hue for greys (their hue is undefined).
+        // Keep the current hue for grays (their hue is undefined).
         if hsb.s > 0 && hsb.b > 0 { hue = hsb.h }
         saturation = hsb.s
         brightness = hsb.b
@@ -115,7 +115,7 @@ final class MiniColorPickerView: NSView {
     }
 }
 
-/// A plain colour swatch.
+/// A plain color swatch.
 final class SwatchView: NSView {
     var color: RGB = RGB(r: 0, g: 0, b: 0) { didSet { needsDisplay = true } }
 

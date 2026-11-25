@@ -8,7 +8,7 @@ import DrawBotSystem
 /// * Synthetic events inherit held modifiers, which would turn clicks into ⌘-clicks and typing
 ///   into shortcuts.
 /// * Many apps ignore input while a dialog or popup is still animating closed (PaintZ ignores
-///   its colour button for about a second after its dialog closes). If the click that opens the
+///   its color button for about a second after its dialog closes). If the click that opens the
 ///   picker is lost, every following click lands on whatever is underneath — often the canvas.
 @MainActor
 enum ModifierWait {
@@ -30,13 +30,13 @@ enum ModifierWait {
     }
 }
 
-/// Quiet time before replaying a learned colour picker (see `ModifierWait`).
+/// Quiet time before replaying a learned color picker (see `ModifierWait`).
 let pickerQuietPeriod: TimeInterval = 1.5
 
-/// One Colour Learn lesson:
+/// One Color Learn lesson:
 ///
-///     demo(colour A) ─Done─▶ demo(colour B) ─Done─▶ analyse ─▶ trying(test colour) ─▶ verify
-///     verify ─Yes─▶ result(success)            verify ─No─▶ demo(that test colour) ─▶ analyse …
+///     demo(color A) ─Done─▶ demo(color B) ─Done─▶ analyze ─▶ trying(test color) ─▶ verify
+///     verify ─Yes─▶ result(success)            verify ─No─▶ demo(that test color) ─▶ analyze …
 ///     verify ─Try again─▶ trying               any ─Cancel─▶ end
 ///
 /// While a demo prompt is up, the recorder captures the user's clicks and typing in the drawing
@@ -66,7 +66,7 @@ final class ColorLearnSession {
     private let recorder = InputRecorder()
     /// The user confirmed a profile (it should be saved). `pickerColor` is what the picker shows now.
     private let onLearned: (ColorPickerProfile, RGB?) -> Void
-    /// The lesson is over (closed, cancelled or given up).
+    /// The lesson is over (closed, canceled or given up).
     private let onEnd: () -> Void
 
     private var stage: Stage = .demo
@@ -179,7 +179,7 @@ final class ColorLearnSession {
     }
 
     func cancel() {
-        if stage == .trying { replayer.requestStop(reason: "Cancelled") }
+        if stage == .trying { replayer.requestStop(reason: "Canceled") }
         end()
     }
 
@@ -238,7 +238,7 @@ final class ColorLearnSession {
 
     private func demoContent() -> PromptContent {
         var c = PromptContent(mode: .learnDemo(recorded: recorder.summary), color: demoColor)
-        c.title = demos.count < 2 ? "Teach DrawBot · colour \(demos.count + 1) of 2" : "Teach DrawBot · one more example"
+        c.title = demos.count < 2 ? "Teach DrawBot · color \(demos.count + 1) of 2" : "Teach DrawBot · one more example"
         c.appName = target.appName
         c.note = note
         return c
@@ -263,7 +263,7 @@ final class ColorLearnSession {
             }
         }
         guard meaningful else {
-            note = "DrawBot didn't see you click or type in \(target.appName) yet. Select the colour there, then press Done."
+            note = "DrawBot didn't see you click or type in \(target.appName) yet. Select the color there, then press Done."
             refreshDemo()
             return
         }
@@ -298,7 +298,7 @@ final class ColorLearnSession {
     private func tryCandidate(attempt: Int = 0) {
         guard let candidate, !ended else { return }
         if replayer.isRunning {
-            // A cancelled try is still letting go of the mouse.
+            // A canceled try is still letting go of the mouse.
             guard attempt < 40 else { return showResult(success: false, message: "DrawBot's previous try didn't finish.") }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
                 MainActor.assumeIsolated { self?.tryCandidate(attempt: attempt + 1) }
@@ -357,9 +357,9 @@ final class ColorLearnSession {
         pickerColor = testColor
         onLearned(p, testColor)
         let how = p.isExact
-            ? "It types the colour, so colours come out exact."
-            : "It clicks positions, so a colour can be off by a little."
-        showResult(success: true, message: "\(p.summary)\n\(how)\n\nWith Colour selection set to automatic, DrawBot now selects every colour in \(target.appName) by itself. Keep the colour picker where it is; if it moves, learn it again.")
+            ? "It types the color, so colors come out exact."
+            : "It clicks positions, so a color can be off by a little."
+        showResult(success: true, message: "\(p.summary)\n\(how)\n\nWith Color selection set to automatic, DrawBot now selects every color in \(target.appName) by itself. Keep the color picker where it is; if it moves, learn it again.")
     }
 
     private func rejectCandidate() {
@@ -368,22 +368,22 @@ final class ColorLearnSession {
         rejected.insert(candidate.hypothesisKey)
         let failed = testColor
         testIndex += 1
-        // A typed profile repeats exactly what the user typed. If that gave the wrong colour,
+        // A typed profile repeats exactly what the user typed. If that gave the wrong color,
         // the app itself changes typed values (PaintZ turns a typed hex code 15° round the hue
         // circle): demonstrating the same way again can't help. Suggest another way instead.
         if candidate.isExact {
             let typedHex = candidate.typedSlots.contains { if case .hex = $0 { return true } else { return false } }
             let other = typedHex
-                ? "type the R, G and B values into their fields instead, or click the colour in the picker"
-                : "click the colour in the picker instead"
-            showResult(success: false, message: "DrawBot typed exactly what you typed, so \(target.appName) itself changed the colour. Some apps convert typed values wrongly; PaintZ, for example, shifts a typed hex code's hue. Start over and \(other).")
+                ? "type the R, G and B values into their fields instead, or click the color in the picker"
+                : "click the color in the picker instead"
+            showResult(success: false, message: "DrawBot typed exactly what you typed, so \(target.appName) itself changed the color. Some apps convert typed values wrongly; PaintZ, for example, shifts a typed hex code's hue. Start over and \(other).")
             return
         }
         guard demos.count < Self.maxDemos else {
-            showResult(success: false, message: "None of DrawBot's \(rejected.count) interpretations of your clicks worked. Start over and type the colour's values instead (its hex code, or R, G and B), if your colour picker has fields for them.")
+            showResult(success: false, message: "None of DrawBot's \(rejected.count) interpretations of your clicks worked. Start over and type the color's values instead (its hex code, or R, G and B), if your color picker has fields for them.")
             return
         }
-        note = "DrawBot's try didn't work. Select this colour yourself once more so DrawBot can learn from it."
+        note = "DrawBot's try didn't work. Select this color yourself once more so DrawBot can learn from it."
         startDemo(color: failed, previous: nil)
     }
 
@@ -391,7 +391,7 @@ final class ColorLearnSession {
         stage = .result
         recorder.stop()
         var c = PromptContent(mode: .learnResult(success: success, message: message), color: nil)
-        c.title = "Colour Learn"
+        c.title = "Color Learn"
         c.appName = target.appName
         prompt.show(c, canvasCG: target.canvas, autoCopyHex: false)
     }

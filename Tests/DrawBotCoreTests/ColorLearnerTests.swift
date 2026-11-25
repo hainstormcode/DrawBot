@@ -2,7 +2,7 @@ import CoreGraphics
 import XCTest
 @testable import DrawBotCore
 
-/// Simulated users demonstrating colours on simulated colour pickers.
+/// Simulated users demonstrating colors on simulated color pickers.
 final class ColorLearnerTests: XCTestCase {
     let screens = [CGRect(x: 0, y: 0, width: 1512, height: 982)]
     let canvas = CGRect(x: 20, y: 300, width: 400, height: 400)
@@ -101,10 +101,10 @@ final class ColorLearnerTests: XCTestCase {
 
     // MARK: Tests
 
-    func testDemoColoursDifferInEveryParameter() {
+    func testDemoColorsDifferInEveryParameter() {
         for p in ColorParam.allCases {
             let d = abs(p.value(of: a) - p.value(of: b))
-            XCTAssertGreaterThan(d, 0.1 * p.range, "\(p) barely differs between the demo colours")
+            XCTAssertGreaterThan(d, 0.1 * p.range, "\(p) barely differs between the demo colors")
         }
     }
 
@@ -246,11 +246,11 @@ final class ColorLearnerTests: XCTestCase {
 
     func testWheelIsLearnedOnceAThirdDemoRulesOutTheSquare() throws {
         // macOS-style: hue = angle, saturation = radius (100 pt), brightness slider below the wheel.
-        let centre = CGPoint(x: 1100, y: 300)
+        let center = CGPoint(x: 1100, y: 300)
         func wheel(_ c: RGB) -> CGPoint {
             let hsb = ColorMath.hsb(c)
             let ang = hsb.h * .pi / 180
-            return CGPoint(x: Double(centre.x) + 100 * hsb.s / 100 * cos(ang), y: Double(centre.y) - 100 * hsb.s / 100 * sin(ang))
+            return CGPoint(x: Double(center.x) + 100 * hsb.s / 100 * cos(ang), y: Double(center.y) - 100 * hsb.s / 100 * sin(ang))
         }
         func slider(_ c: RGB) -> CGPoint { CGPoint(x: 1000 + 200 * ColorMath.hsb(c).b / 100, y: 450) }
         func demo(_ c: RGB) -> ColorDemo {

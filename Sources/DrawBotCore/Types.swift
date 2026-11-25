@@ -4,7 +4,7 @@ import Foundation
 // Shared value types. These signatures are the contract between modules — do not rename or
 // change existing members. Adding members is fine.
 
-/// An opaque 8-bit sRGB colour.
+/// An opaque 8-bit sRGB color.
 public struct RGB: Hashable, Sendable, Codable {
     public var r: UInt8
     public var g: UInt8
@@ -19,7 +19,7 @@ public struct RGB: Hashable, Sendable, Codable {
     /// "#RRGGBB", uppercase.
     public var hex: String { String(format: "#%02X%02X%02X", r, g, b) }
 
-    /// Hex without the leading "#" (what most colour pickers' hex fields want).
+    /// Hex without the leading "#" (what most color pickers' hex fields want).
     public var hexNoHash: String { String(format: "%02X%02X%02X", r, g, b) }
 
     public var cgColor: CGColor {
@@ -42,7 +42,7 @@ public struct RGBAImage: Sendable, Equatable {
     }
 }
 
-/// Result of colour quantisation. `labels[row * width + col]` is a palette index, or -1 for
+/// Result of color quantization. `labels[row * width + col]` is a palette index, or -1 for
 /// transparent / empty (never drawn). Row 0 is the TOP row.
 public struct QuantizedImage: Sendable, Equatable {
     public let width: Int
@@ -67,7 +67,7 @@ public struct QuantizeOptions: Sendable, Codable, Equatable {
     public var maxColors: Int = 8
     /// Pixels with alpha below this are transparent (label -1).
     public var alphaThreshold: UInt8 = 128
-    /// Clusters whose centres are closer than this CIE76 ΔE are merged ("rounding similar colours together").
+    /// Clusters whose centers are closer than this CIE76 ΔE are merged ("rounding similar colors together").
     public var mergeDistance: Double = 6.0
     /// Deterministic seed — identical input + options must give identical output.
     public var seed: UInt64 = 0x5EED
@@ -86,11 +86,11 @@ public struct QuantizeOptions: Sendable, Codable, Equatable {
 public struct GridLayout: Sendable, Equatable {
     /// The canvas rectangle the user dragged, CG global coords.
     public let canvas: CGRect
-    /// Distance in points between neighbouring cell centres (≈ brush diameter).
+    /// Distance in points between neighboring cell centers (≈ brush diameter).
     public let penSize: Double
     public let columns: Int
     public let rows: Int
-    /// Top-left corner of cell (0,0). The grid (columns*penSize × rows*penSize) is centred in `canvas`.
+    /// Top-left corner of cell (0,0). The grid (columns*penSize × rows*penSize) is centerd in `canvas`.
     public let origin: CGPoint
 
     public init(canvas: CGRect, penSize: Double) {
@@ -108,14 +108,14 @@ public struct GridLayout: Sendable, Equatable {
                               y: Double(canvas.minY) + (Double(canvas.height) - gridH) / 2)
     }
 
-    /// Centre of a cell in CG global coordinates.
+    /// Center of a cell in CG global coordinates.
     public func cellCenter(col: Int, row: Int) -> CGPoint {
         CGPoint(x: Double(origin.x) + (Double(col) + 0.5) * penSize,
                 y: Double(origin.y) + (Double(row) + 0.5) * penSize)
     }
 }
 
-/// A horizontal run of same-coloured cells in one grid row. Both ends inclusive.
+/// A horizontal run of same-colored cells in one grid row. Both ends inclusive.
 /// `startCol > endCol` means the run is drawn right-to-left (serpentine ordering).
 public struct GridRun: Sendable, Equatable {
     public let row: Int

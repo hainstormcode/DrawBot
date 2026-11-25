@@ -38,17 +38,17 @@ final class QuantizerTests: XCTestCase {
         XCTAssertEqual(q.labels, [Int32](repeating: -1, count: 35))
     }
 
-    func testExactColoursPath() {
-        let colours: [(UInt8, UInt8, UInt8)] = [(255, 0, 0), (0, 128, 0), (10, 20, 200), (250, 250, 250), (255, 1, 0)]
+    func testExactColorsPath() {
+        let colors: [(UInt8, UInt8, UInt8)] = [(255, 0, 0), (0, 128, 0), (10, 20, 200), (250, 250, 250), (255, 1, 0)]
         let img = TestImages.rgba(width: 20, height: 10) { x, y in
             if y == 0 && x < 3 { return (0, 0, 0, 0) }  // transparent pixels
-            let c = colours[(x / 4 + y) % colours.count]
+            let c = colors[(x / 4 + y) % colors.count]
             return (c.0, c.1, c.2, 255)
         }
-        // mergeDistance 0: exact colours preserved, even the near-duplicate (255,1,0).
+        // mergeDistance 0: exact colors preserved, even the near-duplicate (255,1,0).
         let q = Quantizer.quantize(img, options: QuantizeOptions(maxColors: 8, mergeDistance: 0))
         assertWellFormed(q, img)
-        XCTAssertEqual(Set(q.palette), Set(colours.map { RGB(r: $0.0, g: $0.1, b: $0.2) }))
+        XCTAssertEqual(Set(q.palette), Set(colors.map { RGB(r: $0.0, g: $0.1, b: $0.2) }))
         XCTAssertEqual(q.palette.count, 5)
         for y in 0..<10 {
             for x in 0..<20 {
@@ -68,8 +68,8 @@ final class QuantizerTests: XCTestCase {
         XCTAssertTrue(qm.palette.contains(RGB(r: 250, g: 250, b: 250)))
     }
 
-    func testPixelArtExactWhenColoursEqualMax() {
-        // Exactly maxColors distinct colours → exact path.
+    func testPixelArtExactWhenColorsEqualMax() {
+        // Exactly maxColors distinct colors → exact path.
         var rng = SplitMix64(seed: 5)
         let pal: [RGB] = (0..<6).map { _ in RGB(r: UInt8(rng.next() & 255), g: UInt8(rng.next() & 255), b: UInt8(rng.next() & 255)) }
         let img = TestImages.rgba(width: 16, height: 16) { x, y in
@@ -86,17 +86,17 @@ final class QuantizerTests: XCTestCase {
         let q = Quantizer.quantize(img, options: QuantizeOptions(maxColors: 4, mergeDistance: 0))
         assertWellFormed(q, img)
         XCTAssertEqual(q.palette.count, 4)
-        // Palette entries are distinct greys spanning the range; labels are monotone along x.
-        let greys = q.palette.map { Int($0.r) }.sorted()
-        XCTAssertLessThan(greys.first!, 80)
-        XCTAssertGreaterThan(greys.last!, 170)
-        var lastGrey = -1
+        // Palette entries are distinct grays spanning the range; labels are monotone along x.
+        let grays = q.palette.map { Int($0.r) }.sorted()
+        XCTAssertLessThan(grays.first!, 80)
+        XCTAssertGreaterThan(grays.last!, 170)
+        var lastGray = -1
         for x in 0..<256 {
             let g = Int(q.palette[Int(q.labels[x])].r)
-            XCTAssertGreaterThanOrEqual(g, lastGrey)
-            lastGrey = g
+            XCTAssertGreaterThanOrEqual(g, lastGray)
+            lastGray = g
         }
-        // Each pixel is assigned to its closest palette colour (in Lab), approximately.
+        // Each pixel is assigned to its closest palette color (in Lab), approximately.
         for x in stride(from: 0, to: 256, by: 5) {
             let c = RGB(r: UInt8(x), g: UInt8(x), b: UInt8(x))
             let assigned = ColorMath.deltaE(c, q.palette[Int(q.labels[x])])
@@ -111,7 +111,7 @@ final class QuantizerTests: XCTestCase {
         }
     }
 
-    func testMaxColoursRespectedAndClamped() {
+    func testMaxColorsRespectedAndClamped() {
         let img = TestImages.photoLike(width: 120, height: 80)
         for k in [1, 2, 5, 16, 64, 200] {
             let q = Quantizer.quantize(img, options: QuantizeOptions(maxColors: k, mergeDistance: 0))
@@ -135,8 +135,8 @@ final class QuantizerTests: XCTestCase {
         assertWellFormed(Quantizer.quantize(img, options: o2), img)
     }
 
-    func testMergeBehaviour() {
-        // Two clearly different colours plus near-duplicates of each.
+    func testMergeBehavior() {
+        // Two clearly different colors plus near-duplicates of each.
         let img = TestImages.rgba(width: 40, height: 10) { x, _ in
             switch x % 4 {
             case 0: return (200, 30, 30, 255)
@@ -154,7 +154,7 @@ final class QuantizerTests: XCTestCase {
         // Merged palette entry is the count-weighted mean.
         let red = merged.palette.first { $0.r > 100 }!
         XCTAssertEqual(red, RGB(r: 202, g: 31, b: 29))  // (200+203)/2 = 201.5 → 202 etc.
-        // Huge merge distance collapses everything into one colour.
+        // Huge merge distance collapses everything into one color.
         let one = Quantizer.quantize(img, options: QuantizeOptions(maxColors: 8, mergeDistance: 500))
         assertWellFormed(one, img)
         XCTAssertEqual(one.palette.count, 1)
@@ -207,7 +207,7 @@ final class QuantizerTests: XCTestCase {
         XCTAssertEqual(Quantizer.removing([], from: q), q)
     }
 
-    /// Performance check: 1000×700 photo-like image, 16 colours. The hard bound is loose so it
+    /// Performance check: 1000×700 photo-like image, 16 colors. The hard bound is loose so it
     /// also passes in debug builds; the printed time is what matters in release.
     func testQuantizePerformance1000x700() {
         let img = TestImages.photoLike(width: 1000, height: 700)
@@ -215,7 +215,7 @@ final class QuantizerTests: XCTestCase {
         let t0 = Date()
         let q = Quantizer.quantize(img, options: opts)
         let dt = Date().timeIntervalSince(t0)
-        print(String(format: "quantize 1000x700 k=16: %.1f ms (%d colours)", dt * 1000, q.palette.count))
+        print(String(format: "quantize 1000x700 k=16: %.1f ms (%d colors)", dt * 1000, q.palette.count))
         XCTAssertLessThanOrEqual(q.palette.count, 16)
         XCTAssertGreaterThan(q.palette.count, 4)
         XCTAssertEqual(q.counts.reduce(0, +), 700_000)

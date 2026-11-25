@@ -167,7 +167,7 @@ struct ControlPanelView: View {
     }
 
     private var colorSelectionSection: some View {
-        Section2(title: "Colour selection") {
+        Section2(title: "Color selection") {
             Picker("", selection: $controller.settings.colorSelection) {
                 ForEach(ColorSelectionMode.allCases, id: \.self) { Text($0.displayName).tag($0) }
             }
@@ -184,21 +184,21 @@ struct ControlPanelView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             HStack(spacing: 8) {
-                Button(controller.currentProfile == nil ? "Learn Colour Picker…" : "Learn Again…") {
+                Button(controller.currentProfile == nil ? "Learn Color Picker…" : "Learn Again…") {
                     controller.learnColorPicker()
                 }
                 .disabled(!controller.canLearn)
-                .help("Select two colours in your drawing app while DrawBot watches; it then selects colours by itself")
+                .help("Select two colors in your drawing app while DrawBot watches; it then selects colors by itself")
                 if controller.currentProfile != nil {
                     Button("Forget") { controller.forgetColorProfile() }
-                        .help("Delete what DrawBot learned about this app's colour picker")
+                        .help("Delete what DrawBot learned about this app's color picker")
                 }
                 Spacer()
             }
             if let warning = controller.learnKeyboardWarning {
                 Text(warning).font(.caption).foregroundColor(.orange).fixedSize(horizontal: false, vertical: true)
             }
-            Text("Colour Learn watches you select two colours (clicks, drags and typing, e.g. a hex code), works out how your colour picker works, tries a third colour and asks if it worked. Afterwards DrawBot selects every colour by itself.")
+            Text("Color Learn watches you select two colors (clicks, drags and typing, e.g. a hex code), works out how your color picker works, tries a third color and asks if it worked. Afterwards DrawBot selects every color by itself.")
                 .font(.caption).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
         }
         .disabled(controller.isRunning)
@@ -208,7 +208,7 @@ struct ControlPanelView: View {
         Section2(title: "Settings") {
             Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 8) {
                 GridRow {
-                    Text("Colours")
+                    Text("Colors")
                     HStack {
                         Slider(value: intBinding(\.maxColors), in: 1...32, step: 1)
                         Stepper("\(controller.settings.maxColors)", value: $controller.settings.maxColors, in: DrawSettings.colorRange)
@@ -248,7 +248,7 @@ struct ControlPanelView: View {
                     .labelsHidden()
                 }
                 GridRow {
-                    Text("Colour order")
+                    Text("Color order")
                     Picker("", selection: $controller.settings.order) {
                         ForEach(ColorOrder.allCases, id: \.self) { Text($0.displayName).tag($0) }
                     }
@@ -263,8 +263,8 @@ struct ControlPanelView: View {
             }
             VStack(alignment: .leading, spacing: 4) {
                 Toggle("Pause if I move the mouse", isOn: $controller.settings.pauseOnMouseMove)
-                Toggle("Skip near-white colours", isOn: $controller.settings.skipNearWhite)
-                Toggle("Copy each colour's hex automatically", isOn: $controller.settings.autoCopyHex)
+                Toggle("Skip near-white colors", isOn: $controller.settings.skipNearWhite)
+                Toggle("Copy each color's hex automatically", isOn: $controller.settings.autoCopyHex)
             }
             .padding(.top, 2)
         }
@@ -408,7 +408,7 @@ struct PaletteStrip: View {
                         Swatch(color: q.palette[i], percent: Double(q.counts[i]) / Double(total) * 100,
                                skipped: controller.skipSet.contains(i))
                             .onTapGesture { controller.toggleSkip(i) }
-                            .help(controller.skipSet.contains(i) ? "Skipped — click to draw this colour" : "Click to skip this colour")
+                            .help(controller.skipSet.contains(i) ? "Skipped — click to draw this color" : "Click to skip this color")
                     }
                 }
             }

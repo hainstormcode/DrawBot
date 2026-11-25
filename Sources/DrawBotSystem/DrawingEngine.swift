@@ -41,7 +41,7 @@ public final class DrawingEngine {
         /// Stopped for good (Escape pressed, requestStop(), permission lost…).
         case stopped(reason: String)
         /// Interrupted but resumable: call draw again with startingAt: resumeIndex.
-        /// The interrupted stroke is redrawn in full on resume (harmless — same colour).
+        /// The interrupted stroke is redrawn in full on resume (harmless — same color).
         case paused(resumeIndex: Int, reason: String)
     }
 
@@ -256,7 +256,7 @@ private final class DrawingWorker {
 
     // Movement detection state
     private var history: [CGPoint] = [] // last posted points, oldest first (≤ historyLength)
-    /// Points kept for recognising window-server lag while confirming.
+    /// Points kept for recognizing window-server lag while confirming.
     private static let historyLength = 32
     /// Points the cursor may lag behind by without even triggering a confirmation.
     private static let recentLength = 6

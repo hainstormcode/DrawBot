@@ -4,7 +4,7 @@ import DrawBotCore
 /// A white surface that records mouse drags as round-capped lines into an offscreen bitmap,
 /// so thousands of strokes stay cheap to display.
 final class TestCanvasView: NSView {
-    /// Colour and width for new strokes (asked at mouse-down).
+    /// Color and width for new strokes (asked at mouse-down).
     var strokeStyle: () -> (NSColor, CGFloat) = { (.black, 4) }
 
     private var bitmap: CGContext?
@@ -112,7 +112,7 @@ final class TestCanvasView: NSView {
 }
 
 /// Handles ⌘A / ⌘C / ⌘V / ⌘X / ⌘Z itself: an accessory app has no Edit menu to route them, and
-/// Colour Learn may replay them into the picker's hex field.
+/// Color Learn may replay them into the picker's hex field.
 final class EditingWindow: NSWindow {
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
@@ -135,7 +135,7 @@ final class EditingWindow: NSWindow {
 }
 
 /// The built-in Test Canvas: a normal window with a white drawing surface, Clear, and a small
-/// colour picker (square + hue strip + hex field) that Colour Learn can learn.
+/// color picker (square + hue strip + hex field) that Color Learn can learn.
 final class TestCanvasWindowController: NSObject, NSWindowDelegate, NSTextFieldDelegate {
     let window: NSWindow
     let canvasView: TestCanvasView
@@ -143,7 +143,7 @@ final class TestCanvasWindowController: NSObject, NSWindowDelegate, NSTextFieldD
     private let hexField = NSTextField(string: "000000")
     private let swatch = SwatchView(frame: CGRect(x: 0, y: 0, width: 40, height: 22))
 
-    /// The colour selected in the Test Canvas's own picker.
+    /// The color selected in the Test Canvas's own picker.
     var pickedColor: RGB { picker.color }
 
     init(strokeStyle: @escaping () -> (NSColor, CGFloat)) {
@@ -181,7 +181,7 @@ final class TestCanvasWindowController: NSObject, NSWindowDelegate, NSTextFieldD
         sep.boxType = .separator
         sep.autoresizingMask = [.width, .minYMargin]
 
-        // Colour picker column on the right.
+        // Color picker column on the right.
         let sideHeight = contentRect.height - barHeight - 1
         let side = NSView(frame: CGRect(x: contentRect.width - sideWidth, y: 0, width: sideWidth, height: sideHeight))
         side.autoresizingMask = [.minXMargin, .height]
@@ -189,7 +189,7 @@ final class TestCanvasWindowController: NSObject, NSWindowDelegate, NSTextFieldD
         vsep.boxType = .separator
         vsep.autoresizingMask = [.height]
         side.addSubview(vsep)
-        let title = NSTextField(labelWithString: "Colour picker")
+        let title = NSTextField(labelWithString: "Color picker")
         title.font = .boldSystemFont(ofSize: 12)
         title.sizeToFit()
         var y = sideHeight - 14 - title.frame.height
@@ -214,7 +214,7 @@ final class TestCanvasWindowController: NSObject, NSWindowDelegate, NSTextFieldD
         side.addSubview(hexLabel)
         side.addSubview(hexField)
         side.addSubview(swatch)
-        let help = NSTextField(wrappingLabelWithString: "With Colour selection set to automatic, DrawBot paints with this picker's colour. Teach it with Learn Colour Picker… in the DrawBot panel.")
+        let help = NSTextField(wrappingLabelWithString: "With Color selection set to automatic, DrawBot paints with this picker's color. Teach it with Learn Color Picker… in the DrawBot panel.")
         help.font = .systemFont(ofSize: 11)
         help.textColor = .secondaryLabelColor
         help.frame = CGRect(x: 16, y: y - 12 - 70, width: sideWidth - 28, height: 70)

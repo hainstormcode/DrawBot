@@ -1,17 +1,17 @@
 import AppKit
 import DrawBotCore
 
-/// How each colour gets selected in the drawing app.
+/// How each color gets selected in the drawing app.
 enum ColorSelectionMode: String, Codable, CaseIterable {
-    /// DrawBot shows the colour and the user selects it, then presses Continue.
+    /// DrawBot shows the color and the user selects it, then presses Continue.
     case manual
-    /// Colour Learn: DrawBot replays what it learned from the user's demonstrations.
+    /// Color Learn: DrawBot replays what it learned from the user's demonstrations.
     case automatic
 
     var displayName: String {
         switch self {
-        case .manual: return "Ask me to select each colour"
-        case .automatic: return "Select colours automatically (Colour Learn)"
+        case .manual: return "Ask me to select each color"
+        case .automatic: return "Select colors automatically (Color Learn)"
         }
     }
 }
@@ -75,11 +75,17 @@ enum SettingsStore {
     private static let canvasKey = "DrawBot.lastCanvasCG"
     private static let profilesKey = "DrawBot.colorPickerProfiles.v1"
 
-    /// Learned colour pickers, keyed by `ColorPickerProfile.appKey`.
+    /// Learned color pickers, keyed by `ColorPickerProfile.appKey`.
+    /// One unreadable profile (e.g. saved by an older version) must not lose the others.
+    private struct LossyProfile: Decodable {
+        let profile: ColorPickerProfile?
+        init(from decoder: Decoder) throws { profile = try? ColorPickerProfile(from: decoder) }
+    }
+
     static func loadProfiles() -> [String: ColorPickerProfile] {
         guard let data = defaults.data(forKey: profilesKey),
-              let p = try? JSONDecoder().decode([String: ColorPickerProfile].self, from: data) else { return [:] }
-        return p
+              let p = try? JSONDecoder().decode([String: LossyProfile].self, from: data) else { return [:] }
+        return p.compactMapValues(\.profile)
     }
 
     static func saveProfiles(_ profiles: [String: ColorPickerProfile]) {

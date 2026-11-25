@@ -8,7 +8,7 @@ public struct LabColor: Sendable, Equatable {
 }
 
 public enum ColorMath {
-    // D65 reference white (CIE 1931 2°), Y normalised to 1.
+    // D65 reference white (CIE 1931 2°), Y normalized to 1.
     static let whiteX = 0.95047
     static let whiteY = 1.0
     static let whiteZ = 1.08883
@@ -35,7 +35,7 @@ public enum ColorMath {
         c <= 0.0031308 ? 12.92 * c : 1.055 * pow(c, 1 / 2.4) - 0.055
     }
 
-    /// sRGB 8-bit components → Lab (fast path used by the quantiser).
+    /// sRGB 8-bit components → Lab (fast path used by the quantizer).
     @inline(__always)
     static func lab(r: UInt8, g: UInt8, b: UInt8) -> (L: Double, a: Double, b: Double) {
         let rl = srgbToLinearTable[Int(r)]
@@ -72,7 +72,7 @@ public enum ColorMath {
         return RGB(r: to8(rl), g: to8(gl), b: to8(bl))
     }
 
-    /// CIE76 ΔE between two Lab colours.
+    /// CIE76 ΔE between two Lab colors.
     public static func deltaE(_ x: LabColor, _ y: LabColor) -> Double {
         let dL = x.L - y.L, da = x.a - y.a, db = x.b - y.b
         return (dL * dL + da * da + db * db).squareRoot()
@@ -89,13 +89,13 @@ public enum ColorMath {
         return (l.a * l.a + l.b * l.b).squareRoot()
     }
 
-    /// L* ≥ 92 and chroma < 8 — a colour that is effectively the white paper.
+    /// L* ≥ 92 and chroma < 8 — a color that is effectively the white paper.
     public static func isNearWhite(_ c: RGB) -> Bool {
         let l = lab(c)
         return l.L >= 92 && (l.a * l.a + l.b * l.b).squareRoot() < 8
     }
 
-    /// Hue 0..<360, saturation 0...100, brightness 0...100 (as shown in macOS / most colour pickers).
+    /// Hue 0..<360, saturation 0...100, brightness 0...100 (as shown in macOS / most color pickers).
     public static func hsb(_ c: RGB) -> (h: Double, s: Double, b: Double) {
         let r = Double(c.r) / 255, g = Double(c.g) / 255, b = Double(c.b) / 255
         let mx = max(r, g, b), mn = min(r, g, b)
@@ -116,7 +116,7 @@ public enum ColorMath {
         return (h, s, mx * 100)
     }
 
-    /// A short human name, e.g. "dark red", "light grey", "black".
+    /// A short human name, e.g. "dark red", "light gray", "black".
     public static func approximateName(_ c: RGB) -> String {
         let (h, s, v) = hsb(c)
         let L = lab(c).L
@@ -126,9 +126,9 @@ public enum ColorMath {
         if s < 12 || (v < 25 && s < 30) {
             if L >= 95 { return "white" }
             if L < 12 { return "black" }
-            if L >= 80 { return "light grey" }
-            if L < 35 { return "dark grey" }
-            return "grey"
+            if L >= 80 { return "light gray" }
+            if L < 35 { return "dark gray" }
+            return "gray"
         }
 
         // Brown = dark/low-brightness orange (and nearby red-orange / dark yellow-orange).

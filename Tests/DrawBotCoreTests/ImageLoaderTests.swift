@@ -34,7 +34,7 @@ final class ImageLoaderTests: XCTestCase {
     }
 
     func testAspectFitLetterboxIsTransparent() {
-        // 100×50 opaque green into 20×20 → 20×10 centred, rows 5..<15.
+        // 100×50 opaque green into 20×20 → 20×10 centerd, rows 5..<15.
         let src = TestImages.make(width: 100, height: 50) { ctx in
             TestImages.fill(ctx, CGRect(x: 0, y: 0, width: 100, height: 50), 0, 1, 0)
         }
@@ -69,7 +69,7 @@ final class ImageLoaderTests: XCTestCase {
             XCTAssertGreaterThanOrEqual(p.r, 252)
             XCTAssertEqual(p.g, 0); XCTAssertEqual(p.b, 0)
         }
-        // Fully transparent source stays fully transparent with zero colour.
+        // Fully transparent source stays fully transparent with zero color.
         let clear = TestImages.make(width: 8, height: 8) { _ in }
         XCTAssertTrue(ImageLoader.rasterize(clear, width: 4, height: 4).data.allSatisfy { $0 == 0 })
     }
@@ -91,7 +91,7 @@ final class ImageLoaderTests: XCTestCase {
         }
     }
 
-    func testDownscaleAveragesColours() {
+    func testDownscaleAveragesColors() {
         // Checkerboard of red and blue 1-px cells downscaled 10× → uniform purple-ish (sRGB mean ≈ 128).
         let src = TestImages.make(width: 100, height: 100) { ctx in
             for y in 0..<100 { for x in 0..<100 {
@@ -104,7 +104,7 @@ final class ImageLoaderTests: XCTestCase {
     }
 
     func testPixelArtUpscaleStaysCrisp() {
-        // 4×4 two-colour checkerboard upscaled 10× must contain only the two original colours.
+        // 4×4 two-color checkerboard upscaled 10× must contain only the two original colors.
         let src = TestImages.make(width: 4, height: 4) { ctx in
             for y in 0..<4 { for x in 0..<4 {
                 let on = (x + y) % 2 == 0

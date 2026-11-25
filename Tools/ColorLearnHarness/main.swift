@@ -2,9 +2,9 @@ import CoreGraphics
 import DrawBotCore
 import Foundation
 
-// colorlearn-harness: runs DrawBot's Colour Learn analysis on demonstrations recorded outside
+// colorlearn-harness: runs DrawBot's Color Learn analysis on demonstrations recorded outside
 // the app (for example by Tools/page-recorder.js in a browser), and prints the learned profile
-// plus the concrete input it would replay for some test colours.
+// plus the concrete input it would replay for some test colors.
 //
 //   swift run colorlearn-harness < session.json
 //
@@ -14,7 +14,7 @@ import Foundation
 //   "screen": [x, y, w, h],              // the visible area (plausibility checks)
 //   "demos": [ { "color": "E68A2E", "previous": null | "RRGGBB", "events": [Event] } ],
 //   "rejected": ["hypothesis key", …],   // optional
-//   "tests": ["50B369", …],              // colours to produce replay actions for
+//   "tests": ["50B369", …],              // colors to produce replay actions for
 //   "previous": "RRGGBB" | null          // what the picker shows before the first test
 // }
 // Event: { "kind": "down"|"drag"|"up"|"key", "t": seconds, "x": .., "y": .., "button": 0|2,

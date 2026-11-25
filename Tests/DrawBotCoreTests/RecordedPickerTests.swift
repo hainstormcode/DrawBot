@@ -5,8 +5,8 @@ import XCTest
 /// Regression tests built from real demonstrations recorded in web paint apps (coordinates are
 /// the page's CSS pixels, which is all the learner needs: one consistent frame).
 ///
-/// Sumo Paint (paint.sumo.app): the colour picker is a popover that opens ON TOP of the canvas
-/// (toolbar button at 803,727). Inside: a hue ring (centre 682,380, radius 110.5, red at the top,
+/// Sumo Paint (paint.sumo.app): the color picker is a popover that opens ON TOP of the canvas
+/// (toolbar button at 803,727). Inside: a hue ring (center 682,380, radius 110.5, red at the top,
 /// clockwise) around a saturation × brightness square (617–747 × 315–445), and a hex field at
 /// 636–728 × 512–542 that only accepts a value with "#".
 final class RecordedPickerTests: XCTestCase {
@@ -43,7 +43,7 @@ final class RecordedPickerTests: XCTestCase {
         return ColorMath.rgb(hue: ang, saturation: s, brightness: v)
     }
 
-    // Recorded: the user opened the picker for the first colour and left it open, so the second
+    // Recorded: the user opened the picker for the first color and left it open, so the second
     // demo has no "open" click. DrawBot must explain instead of learning a profile that never
     // opens or closes the picker (and would then draw into it).
     func testPopoverLeftOpenBetweenDemosIsExplained() {
@@ -64,7 +64,7 @@ final class RecordedPickerTests: XCTestCase {
         XCTAssertTrue(f.message.contains("still open"), f.message)
     }
 
-    // Recorded: open, ring, square, close — for both colours. Clicks inside the canvas rectangle
+    // Recorded: open, ring, square, close — for both colors. Clicks inside the canvas rectangle
     // are picker clicks here and must not be thrown away.
     func testSumoRingAndSquareByClicking() throws {
         let d1 = clicks(toolbarButton, at: 182.40) + clicks(CGPoint(x: 737, y: 284), at: 183.43)
@@ -85,10 +85,10 @@ final class RecordedPickerTests: XCTestCase {
             }
             XCTAssertEqual(open, toolbarButton)
             XCTAssertEqual(close, toolbarButton)
-            // The press must land inside the real square even for colours on its edges (the
+            // The press must land inside the real square even for colors on its edges (the
             // fitted edges are ~5 pt off because the demos were only approximate).
             XCTAssertTrue(squareRect.contains(sqFrom), "press outside the square for \(test.hex): \(sqFrom)")
-            // The square clamps drags, so the colour is decided by where the drag ends.
+            // The square clamps drags, so the color is decided by where the drag ends.
             let clampedEnd = CGPoint(x: min(max(sqTo.x, squareRect.minX), squareRect.maxX),
                                      y: min(max(sqTo.y, squareRect.minY), squareRect.maxY))
             let got = sumoColor(ring: ringFrom, square: clampedEnd)
@@ -115,7 +115,7 @@ final class RecordedPickerTests: XCTestCase {
 
     // MARK: PaintZ (paintz.app)
     //
-    // A modal "Colors" dialog over the canvas, opened by the colour button at (763,49) and closed
+    // A modal "Colors" dialog over the canvas, opened by the color button at (763,49) and closed
     // with Save at (783,527). Primary picker: a 256 × 256 saturation × value square at (214,138.5)
     // and a 32-pt hue strip at x 474–506. The strip is linear but offset: hue = 360·f + 15°, so
     // its red seam is 4% from the bottom, not at an end. Its number fields are HSV and R, G, B.
@@ -142,7 +142,7 @@ final class RecordedPickerTests: XCTestCase {
         XCTAssertEqual(profile.space, .hsb)
         XCTAssertTrue(profile.summary.contains("hue slider"), profile.summary)
         // Measured in the app: green → #4fb269, purple → #a24eb2. Check the model agrees for a spread
-        // of colours away from the strip's red seam.
+        // of colors away from the strip's red seam.
         for test in [RGB(r: 0x50, g: 0xB3, b: 0x69), RGB(r: 0xA3, g: 0x4F, b: 0xB3), ColorMath.rgb(hue: 200, saturation: 70, brightness: 40)] {
             let pts = profile.actions(for: test, previous: nil).compactMap { a -> CGPoint? in
                 if case .drag(_, let to, _, _) = a { return to } else { return nil }
@@ -166,7 +166,7 @@ final class RecordedPickerTests: XCTestCase {
         let profile = try ColorLearner.learn(demos: [demo(a, prev: nil, t: 323), demo(b, prev: a, t: 335)],
                                              canvas: paintzCanvas, screens: screen, appKey: "paintz", appName: "PaintZ").get()
         XCTAssertTrue(profile.isExact)
-        XCTAssertEqual(profile.summary, "Types the colour's red value, green value and blue value, plus 3 fixed clicks.")
+        XCTAssertEqual(profile.summary, "Types the color's red value, green value and blue value, plus 3 fixed clicks.")
         let acts = profile.actions(for: RGB(r: 0x50, g: 0xB3, b: 0x69), previous: nil)
         XCTAssertTrue(acts.contains(.click(at: CGPoint(x: 452, y: 422), button: .left, count: 3, modifiers: [])))
         let typed = acts.compactMap { a -> String? in if case .key(let k) = a { return k.characters } else { return nil } }.joined()

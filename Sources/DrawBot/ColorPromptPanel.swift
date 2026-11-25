@@ -3,19 +3,19 @@ import DrawBotCore
 import SwiftUI
 
 enum PromptMode: Equatable {
-    /// Waiting for the user to pick this colour in their drawing app.
+    /// Waiting for the user to pick this color in their drawing app.
     case color
-    /// Interrupted mid-colour (mouse moved, Esc during countdown…).
+    /// Interrupted mid-color (mouse moved, Esc during countdown…).
     case paused(reason: String)
     /// Something covers the canvas.
     case obstructed(message: String)
-    /// All colours drawn.
+    /// All colors drawn.
     case done(summary: String)
-    /// Colour Learn: the user demonstrates selecting this colour while DrawBot records.
+    /// Color Learn: the user demonstrates selecting this color while DrawBot records.
     case learnDemo(recorded: String)
-    /// Colour Learn: DrawBot just tried to select the colour itself — did it work?
+    /// Color Learn: DrawBot just tried to select the color itself — did it work?
     case learnVerify
-    /// Colour Learn finished (or gave up).
+    /// Color Learn finished (or gave up).
     case learnResult(success: Bool, message: String)
 
     var isLearn: Bool {
@@ -34,28 +34,28 @@ struct PromptContent: Equatable {
     var strokeCount: Int = 0
     var strokesRemaining: Int = 0
     var estimate: String = ""
-    /// "Brush: hard, round, 100% opacity, ≈ 4 px …" (colour mode only).
+    /// "Brush: hard, round, 100% opacity, ≈ 4 px …" (color mode only).
     var brushHint: String = ""
-    /// Header for Colour Learn modes ("Teach DrawBot · colour 1 of 2").
+    /// Header for Color Learn modes ("Teach DrawBot · color 1 of 2").
     var title: String = ""
     /// The drawing app's name.
     var appName: String = ""
     /// An extra message (e.g. why automatic selection stopped).
     var note: String = ""
-    /// Colour mode: offer "Select for me" (a learned colour picker exists).
+    /// Color mode: offer "Select for me" (a learned color picker exists).
     var canAutoSelect: Bool = false
 }
 
 enum PromptAction {
     case proceed        // Continue / Resume / Draw anyway (obstructed)
     case checkAgain
-    case skip           // Skip this colour / Skip rest of this colour
+    case skip           // Skip this color / Skip rest of this color
     case stop
     case close
-    case autoSelect     // Select for me (Colour Learn)
-    case redo           // Colour Learn: start this demonstration (or the whole lesson) over
-    case no             // Colour Learn: the try didn't select the right colour
-    case retry          // Colour Learn: try selecting the colour again
+    case autoSelect     // Select for me (Color Learn)
+    case redo           // Color Learn: start this demonstration (or the whole lesson) over
+    case no             // Color Learn: the try didn't select the right color
+    case retry          // Color Learn: try selecting the color again
 }
 
 /// Non-activating floating panel. Clicking its buttons never steals focus from the drawing app.
@@ -193,7 +193,7 @@ struct PromptView: View {
             if content.mode.isLearn {
                 Label(content.title, systemImage: "wand.and.stars").font(.headline)
             } else {
-                Text("Colour \(content.stepNumber) of \(content.stepCount)")
+                Text("Color \(content.stepNumber) of \(content.stepCount)")
                     .font(.headline)
             }
             Spacer()
@@ -252,7 +252,7 @@ struct PromptView: View {
     @ViewBuilder private var message: some View {
         switch content.mode {
         case .color:
-            Text("Select this colour in your drawing app, then press **Continue** (⌃⌥⌘↩).")
+            Text("Select this color in your drawing app, then press **Continue** (⌃⌥⌘↩).")
                 .font(.callout).fixedSize(horizontal: false, vertical: true)
             if !content.note.isEmpty {
                 Text(content.note).font(.callout.weight(.semibold)).foregroundColor(.orange)
@@ -263,19 +263,19 @@ struct PromptView: View {
                     .font(.caption).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
             }
         case .learnDemo(let recorded):
-            Text("Select this colour in **\(content.appName)** the way you normally do. DrawBot is watching your clicks and typing.")
+            Text("Select this color in **\(content.appName)** the way you normally do. DrawBot is watching your clicks and typing.")
                 .font(.callout).fixedSize(horizontal: false, vertical: true)
-            Text("If the colour picker is a popup or dialog, open it, choose the colour, and close it again before pressing Done, every time. Typing the colour's values (the hex code, which is on the clipboard, or R, G and B) is the most reliable. Clicking works too: get as close as you can. If what you get looks different from the swatch here, your app is changing the colour; try another way. Do it the same way each time, and don't paint on the canvas.")
+            Text("If the color picker is a popup or dialog, open it, choose the color, and close it again before pressing Done, every time. Typing the color's values (the hex code, which is on the clipboard, or R, G and B) is the most reliable. Clicking works too: get as close as you can. If what you get looks different from the swatch here, your app is changing the color; try another way. Do it the same way each time, and don't paint on the canvas.")
                 .font(.caption).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
             if !content.note.isEmpty {
                 Text(content.note).font(.callout.weight(.semibold)).foregroundColor(.orange)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Text("When the colour is selected, press **Done** (⌃⌥⌘↩).")
+            Text("When the color is selected, press **Done** (⌃⌥⌘↩).")
                 .font(.callout).fixedSize(horizontal: false, vertical: true)
             Label(recorded, systemImage: "record.circle").font(.caption).foregroundColor(.red)
         case .learnVerify:
-            Text("DrawBot just tried to select this colour by itself. Is it selected in **\(content.appName)** now, with the colour picker closed again (nothing covering the canvas)?")
+            Text("DrawBot just tried to select this color by itself. Is it selected in **\(content.appName)** now, with the color picker closed again (nothing covering the canvas)?")
                 .font(.callout).fixedSize(horizontal: false, vertical: true)
             if !content.note.isEmpty {
                 Text(content.note).font(.callout.weight(.semibold)).foregroundColor(.orange)
@@ -288,7 +288,7 @@ struct PromptView: View {
         case .paused(let reason):
             Text("Paused — \(reason)").font(.callout.weight(.semibold)).foregroundColor(.orange)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("Make sure this colour is still selected, then press **Resume** (⌃⌥⌘↩).")
+            Text("Make sure this color is still selected, then press **Resume** (⌃⌥⌘↩).")
                 .font(.callout).fixedSize(horizontal: false, vertical: true)
         case .obstructed(let msg):
             Text(msg).font(.callout.weight(.semibold)).foregroundColor(.orange)
@@ -306,10 +306,10 @@ struct PromptView: View {
             HStack {
                 Button("Stop", role: .cancel) { act(.stop) }
                 Spacer()
-                Button("Skip this colour") { act(.skip) }
+                Button("Skip this color") { act(.skip) }
                 if content.canAutoSelect {
                     Button("Select for me") { act(.autoSelect) }
-                        .help("Let DrawBot select this colour with what it learned about the colour picker")
+                        .help("Let DrawBot select this color with what it learned about the color picker")
                 }
                 Button("Continue") { act(.proceed) }.keyboardShortcut(.defaultAction)
             }
@@ -318,7 +318,7 @@ struct PromptView: View {
                 Button("Cancel", role: .cancel) { act(.stop) }
                 Spacer()
                 Button("Start over") { act(.redo) }
-                    .help("Forget what was recorded for this colour")
+                    .help("Forget what was recorded for this color")
                 Button("Done") { act(.proceed) }.keyboardShortcut(.defaultAction)
             }
         case .learnVerify:
@@ -335,7 +335,7 @@ struct PromptView: View {
             HStack {
                 Button("Stop", role: .cancel) { act(.stop) }
                 Spacer()
-                Button("Skip rest of colour") { act(.skip) }
+                Button("Skip rest of color") { act(.skip) }
                 Button("Resume") { act(.proceed) }.keyboardShortcut(.defaultAction)
             }
         case .obstructed:
@@ -355,7 +355,7 @@ struct PromptView: View {
             HStack(spacing: 10) {
                 Image(systemName: success ? "checkmark.circle.fill" : "xmark.octagon.fill")
                     .font(.system(size: 30)).foregroundColor(success ? .green : .orange)
-                Text(success ? "Colour picker learned" : "Couldn't learn the colour picker").font(.title3.weight(.semibold))
+                Text(success ? "Color picker learned" : "Couldn't learn the color picker").font(.title3.weight(.semibold))
             }
             Text(message).font(.callout).fixedSize(horizontal: false, vertical: true)
             HStack {

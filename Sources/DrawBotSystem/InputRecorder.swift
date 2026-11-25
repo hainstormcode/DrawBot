@@ -1,10 +1,10 @@
 import AppKit
 import DrawBotCore
 
-/// Records the user's mouse buttons, drags and key presses while they demonstrate a colour
-/// (Colour Learn). Global monitors see events sent to other apps (mouse events need no
+/// Records the user's mouse buttons, drags and key presses while they demonstrate a color
+/// (Color Learn). Global monitors see events sent to other apps (mouse events need no
 /// permission; key events need Accessibility). DrawBot's own windows are not recorded, except
-/// those `recordsLocalWindow` accepts (the Test Canvas and its colour picker).
+/// those `recordsLocalWindow` accepts (the Test Canvas and its color picker).
 @MainActor
 public final class InputRecorder {
     private var monitors: [Any] = []
