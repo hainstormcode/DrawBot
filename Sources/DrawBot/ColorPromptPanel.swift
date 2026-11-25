@@ -83,9 +83,33 @@ final class PromptPanel: NSPanel {
     /// dispatches the click. A click into a non-key window otherwise depends on every view under
     /// the cursor accepting first mouse — and SwiftUI's buttons are internal views we can't
     /// override — so one click on Continue might only focus the panel.
+    ///
+    /// Becoming key takes the keyboard focus away from the drawing app's window, though, and the
+    /// next click there would only bring it back (Color Learn would record it as a real click).
+    /// So once the click is handled, the panel hands the focus back: ordering a key panel out
+    /// returns key status to the active app's window, and ordering it straight back in shows it
+    /// again without taking it.
+    private var tookFocusForClick = false
+
     override func sendEvent(_ event: NSEvent) {
-        if event.type == .leftMouseDown, !isKeyWindow { makeKey() }
+        if event.type == .leftMouseDown, !isKeyWindow {
+            makeKey()
+            tookFocusForClick = !NSApp.isActive
+        }
         super.sendEvent(event)
+        if event.type == .leftMouseUp, tookFocusForClick {
+            tookFocusForClick = false
+            // After the button's action has run (it may hide or refill the panel).
+            DispatchQueue.main.async { [weak self] in
+                MainActor.assumeIsolated { self?.giveFocusBack() }
+            }
+        }
+    }
+
+    func giveFocusBack() {
+        guard isKeyWindow, isVisible, !NSApp.isActive else { return }
+        orderOut(nil)
+        orderFrontRegardless()
     }
 }
 
