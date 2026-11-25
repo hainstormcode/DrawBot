@@ -284,16 +284,17 @@ final class AppController: ObservableObject {
             reprocess()
         }
         if old.skipNearWhite != settings.skipNearWhite { resetSkipSet() }
+        if old.colorSelection != settings.colorSelection { reprocess() }
     }
 
     private func currentKey() -> ProcessingKey? {
         guard let image else { return nil }
         if let canvas {
             return ProcessingKey(imageToken: imageToken, layout: GridLayout(canvas: canvas, penSize: settings.penSize),
-                                 options: settings.quantizeOptions, isPreviewLayout: false)
+                                 options: settings.quantizeOptions, isPreviewLayout: false, snapPalette: snapPalette)
         }
         return ProcessingKey(imageToken: imageToken, layout: ImageProcessor.previewLayout(for: image),
-                             options: settings.quantizeOptions, isPreviewLayout: true)
+                             options: settings.quantizeOptions, isPreviewLayout: true, snapPalette: snapPalette)
     }
 
     private func reprocess() {
@@ -508,6 +509,7 @@ final class AppController: ObservableObject {
             target = .none
         }
         refreshSite()
+        reprocess()   // the target's learned picker may be a fixed palette
     }
 
     /// The website the browser under the canvas shows (nil for other apps). The user may switch
@@ -521,7 +523,10 @@ final class AppController: ObservableObject {
             return
         }
         let site = SiteDetector.site(of: app, at: CGPoint(x: canvas.midX, y: canvas.midY))
-        if site != targetSite { targetSite = site }
+        if site != targetSite {
+            targetSite = site
+            reprocess()   // a different site may have a fixed palette to snap to
+        }
     }
 
     /// "Zen — paintz.app", or just the app's name.
@@ -621,7 +626,8 @@ final class AppController: ObservableObject {
                           watchEscape: { [weak self] on in
                               guard let self, self.phase == .learning else { return }
                               if on { self.registerEsc() } else { self.unregisterEsc() }
-                          }),
+                          },
+                          captureRect: targetWindowRect(canvas: canvas)),
             prompt: prompt, hud: hud, replayer: replayer,
             onLearned: { [weak self] profile, color in
                 guard let self else { return }
@@ -629,6 +635,7 @@ final class AppController: ObservableObject {
                 SettingsStore.saveProfiles(self.colorProfiles)
                 self.pickerColor[profile.appKey] = color
                 if self.settings.colorSelection == .manual { self.settings.colorSelection = .automatic }
+                self.reprocess()
             },
             onEnd: { [weak self] in self?.learningEnded() })
         learnSession = session
@@ -654,6 +661,24 @@ final class AppController: ObservableObject {
         colorProfiles[key] = nil
         pickerColor[key] = nil
         SettingsStore.saveProfiles(colorProfiles)
+        reprocess()
+    }
+
+    /// The drawing app's window around the canvas (CG global), or the canvas's screen.
+    private func targetWindowRect(canvas: CGRect) -> CGRect {
+        let center = CGPoint(x: canvas.midX, y: canvas.midY)
+        if case .app(let app) = target,
+           let w = WindowInspector.windows(at: center).first(where: { $0.pid == app.processIdentifier }) {
+            return w.bounds
+        }
+        if target == .testCanvas, let tc = testCanvas { return ScreenUtil.toCG(tc.window.frame) }
+        return ScreenUtil.screen(forCanvas: canvas).map { ScreenUtil.cgFrame(of: $0) } ?? canvas
+    }
+
+    /// Fixed-palette profiles: the swatch colors the picture is snapped to (automatic mode only).
+    var snapPalette: [RGB]? {
+        guard settings.colorSelection == .automatic, let s = currentProfile?.swatches, !s.isEmpty else { return nil }
+        return s.map(\.color)
     }
 
     /// Brings the target app (or the Test Canvas) to the front, then calls `done`.

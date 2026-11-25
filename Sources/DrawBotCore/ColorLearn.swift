@@ -575,10 +575,13 @@ public struct ColorPickerProfile: Codable, Equatable, Sendable {
     public var pointerBounds: CGRect?
     /// True when the color is typed (exact); false when it is clicked (approximate).
     public var isExact: Bool
+    /// Apps with only fixed swatches: the swatches and their colors. The image's colors are
+    /// snapped to these before drawing, and selecting a color clicks its swatch.
+    public var swatches: [PaletteSwatch]?
 
     public init(appKey: String, appName: String, steps: [PickerStep], keyMap: [String: KeyStroke],
                 space: PickerColorSpace?, summary: String, learnedAt: Date, hypothesisKey: String,
-                pointerBounds: CGRect?, isExact: Bool) {
+                pointerBounds: CGRect?, isExact: Bool, swatches: [PaletteSwatch]? = nil) {
         self.appKey = appKey
         self.appName = appName
         self.steps = steps
@@ -589,6 +592,14 @@ public struct ColorPickerProfile: Codable, Equatable, Sendable {
         self.hypothesisKey = hypothesisKey
         self.pointerBounds = pointerBounds
         self.isExact = isExact
+        self.swatches = swatches
+    }
+
+    /// The swatch closest to `color` (palette profiles only).
+    public func nearestSwatch(to color: RGB) -> PaletteSwatch? {
+        guard let swatches, !swatches.isEmpty else { return nil }
+        let l = ColorMath.lab(color)
+        return swatches.min { ColorMath.deltaE(ColorMath.lab($0.color), l) < ColorMath.deltaE(ColorMath.lab($1.color), l) }
     }
 
     /// The color values this profile types or pastes (empty for a click-only profile).
@@ -608,6 +619,11 @@ public struct ColorPickerProfile: Codable, Equatable, Sendable {
     /// known (needed for pickers whose knob must be grabbed and dragged).
     public func actions(for color: RGB, previous: RGB?) -> [ReplayAction] {
         var out: [ReplayAction] = []
+        if let swatch = nearestSwatch(to: color) {
+            out.append(.click(at: swatch.point, button: .left, count: max(1, swatch.clickCount), modifiers: []))
+            out.append(.wait(0.3))
+            return out
+        }
         for step in steps {
             switch step {
             case .pointer(let p):

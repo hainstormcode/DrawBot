@@ -11,6 +11,8 @@ struct ProcessingKey: Equatable {
     /// True when there is no canvas yet: the layout is an aspect-ratio preview grid, and no
     /// strokes are planned.
     var isPreviewLayout: Bool
+    /// Apps with only fixed swatches: the image's colors are moved to the nearest of these.
+    var snapPalette: [RGB]? = nil
 }
 
 struct ProcessedResult {
@@ -72,7 +74,8 @@ final class ImageProcessor: @unchecked Sendable {
         let layout = key.layout
         let raster = ImageLoader.rasterize(image, width: layout.columns, height: layout.rows)
         if stale() { return nil }
-        let q = Quantizer.quantize(raster, options: key.options)
+        var q = Quantizer.quantize(raster, options: key.options)
+        if let palette = key.snapPalette { q = Quantizer.snap(q, to: palette) }
         if stale() { return nil }
         let preview = ImageLoader.makeCGImage(Quantizer.previewImage(q))
         var strokes: [[ScreenStroke]] = []

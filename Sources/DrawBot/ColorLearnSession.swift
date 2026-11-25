@@ -55,9 +55,11 @@ final class ColorLearnSession {
         let careful: Bool
         /// Claim (true) / release (false) the Esc key while DrawBot is trying the picker.
         let watchEscape: (Bool) -> Void
+        /// Screen area to watch when learning a fixed palette (the drawing app's window).
+        let captureRect: CGRect
     }
 
-    private enum Stage { case demo, trying, verify, result }
+    private enum Stage { case demo, trying, verify, result, palette, paletteChecking }
 
     private let target: Target
     private let prompt: ColorPromptController
@@ -159,6 +161,12 @@ final class ColorLearnSession {
             end()
         case (.result, .redo):
             restart()
+        case (.demo, .palette):
+            startPalette()
+        case (.palette, .proceed):
+            finishPalette()
+        case (.palette, .redo):
+            startPalette()
         default:
             break
         }
@@ -170,7 +178,8 @@ final class ColorLearnSession {
         case .demo: finishDemo()
         case .verify: accept()
         case .result: if learned != nil { end() } else { restart() }
-        case .trying: break
+        case .palette: finishPalette()
+        case .trying, .paletteChecking: break
         }
     }
 
@@ -387,12 +396,189 @@ final class ColorLearnSession {
         startDemo(color: failed, previous: nil)
     }
 
-    private func showResult(success: Bool, message: String) {
+    private func showResult(success: Bool, message: String, swatches: [RGB] = []) {
         stage = .result
         recorder.stop()
         var c = PromptContent(mode: .learnResult(success: success, message: message), color: nil)
         c.title = "Color Learn"
         c.appName = target.appName
+        c.swatches = swatches
         prompt.show(c, canvasCG: target.canvas, autoCopyHex: false)
+    }
+
+    // MARK: Fixed palettes
+
+    /// What the screen looked like before the first swatch click, and after each one.
+    private var paletteBaseline: RGBAImage?
+    private var paletteClicks: [CGPoint] = []          // CG global
+    private var paletteClickCounts: [Int] = []
+    private var paletteFrames: [RGBAImage] = []
+    private var paletteCaptures: Task<Void, Never>?    // serial chain of pending captures
+    private var paletteRect = CGRect.zero
+    private var paletteColorsSoFar: [RGB] = []
+    private static let maxSwatches = 64
+
+    private func startPalette() {
+        token += 1
+        let t = token
+        recorder.stop()
+        recorder.clear()
+        paletteBaseline = nil
+        paletteClicks = []
+        paletteClickCounts = []
+        paletteFrames = []
+        paletteColorsSoFar = []
+        paletteCaptures = nil
+        guard ScreenSampler.isSupported else {
+            showResult(success: false, message: "Learning a fixed palette needs macOS 14 or later (DrawBot has to look at the screen to see which color each swatch selects).")
+            return
+        }
+        guard ScreenSampler.hasPermission else {
+            ScreenSampler.requestPermission()
+            note("palette: no Screen Recording permission")
+            showResult(success: false, message: "To learn a fixed palette, DrawBot has to look at the screen to see which color each swatch selects, which needs the Screen Recording permission. Turn DrawBot on in System Settings → Privacy & Security → Screen & System Audio Recording, relaunch DrawBot, then start the lesson again and click Only swatches…")
+            return
+        }
+        stage = .palette
+        note = ""
+        paletteRect = target.captureRect
+        note("palette lesson started, watching \(paletteRect)")
+        showPalettePrompt(initial: true)
+        target.activate { [weak self] in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                MainActor.assumeIsolated {
+                    guard let self, self.token == t, self.stage == .palette else { return }
+                    self.paletteCaptures = Task { @MainActor [weak self] in
+                        guard let self else { return }
+                        self.paletteBaseline = try? await ScreenSampler.capture(self.paletteRect)
+                    }
+                    self.recorder.recordsLocalWindow = self.target.recordsLocalWindow
+                    self.recorder.onChange = { [weak self] in self?.paletteInput(token: t) }
+                    self.recorder.start()
+                }
+            }
+        }
+    }
+
+    private func showPalettePrompt(initial: Bool = false) {
+        var c = PromptContent(mode: .learnPalette(recorded: "\(paletteClicks.count) swatch\(paletteClicks.count == 1 ? "" : "es") clicked"), color: nil)
+        c.title = "Teach DrawBot · fixed swatches"
+        c.appName = target.appName
+        c.note = note
+        c.swatches = paletteColorsSoFar
+        if initial { prompt.show(c, canvasCG: target.canvas.union(paletteRect.insetBy(dx: 40, dy: 40)), autoCopyHex: false) } else { prompt.update(c) }
+    }
+
+    /// After every click: wait for the app to show the new color, then take a screenshot.
+    private func paletteInput(token t: Int) {
+        guard token == t, stage == .palette, let last = recorder.inputs.last, last.kind == .mouseUp,
+              paletteClicks.count < Self.maxSwatches else { return }
+        paletteClicks.append(last.point)
+        paletteClickCounts.append(last.clickCount)
+        let previous = paletteCaptures
+        paletteCaptures = Task { @MainActor [weak self] in
+            await previous?.value
+            try? await Task.sleep(nanoseconds: 450_000_000)
+            guard let self, self.token == t else { return }
+            if let frame = try? await ScreenSampler.capture(self.paletteRect) {
+                self.paletteFrames.append(frame)
+            } else if let lastFrame = self.paletteFrames.last ?? self.paletteBaseline {
+                self.paletteFrames.append(lastFrame)   // keep frames and clicks aligned
+            }
+            self.showPalettePrompt()
+        }
+        showPalettePrompt()
+    }
+
+    private func finishPalette() {
+        guard stage == .palette else { return }
+        let t = token
+        recorder.stop()
+        stage = .paletteChecking
+        let pending = paletteCaptures
+        Task { @MainActor [weak self] in
+            await pending?.value
+            guard let self, self.token == t else { return }
+            guard let baseline = self.paletteBaseline, self.paletteFrames.count >= 2,
+                  self.paletteFrames.count == self.paletteClicks.count else {
+                self.stage = .palette
+                self.note = self.paletteClicks.count < 2
+                    ? "Click at least two swatches (ideally all of them), then press Done."
+                    : "DrawBot couldn't take screenshots. Check its Screen Recording permission, then start over."
+                self.recorder.start()
+                self.showPalettePrompt()
+                return
+            }
+            let rect = self.paletteRect
+            let local = self.paletteClicks.map { CGPoint(x: $0.x - rect.minX, y: $0.y - rect.minY) }
+            let frames = self.paletteFrames
+            let analysis = await Task.detached { PaletteLearner.analyze(baseline: baseline, frames: frames, clicks: local) }.value
+            guard self.token == t else { return }
+            guard let analysis else {
+                self.showResult(success: false, message: "DrawBot couldn't make sense of the screenshots. Start over and click the swatches a bit more slowly.")
+                return
+            }
+            self.paletteColorsSoFar = analysis.colors
+            let swatches = PaletteLearner.swatches(clicks: self.paletteClicks, colors: analysis.colors, clickCounts: self.paletteClickCounts)
+            self.note("palette: \(swatches.count) swatches, \(analysis.fromIndicator ? "read from the current-color display" : "sampled from the swatches"): \(swatches.map(\.color.hex).joined(separator: " "))")
+            let points = swatches.map(\.point)
+            let bounds = points.dropFirst().reduce(CGRect(origin: points[0], size: .zero)) { $0.union(CGRect(origin: $1, size: .zero)) }
+            let profile = ColorPickerProfile(
+                appKey: self.target.appKey, appName: self.target.appName, steps: [], keyMap: [:], space: nil,
+                summary: "Clicks one of \(swatches.count) fixed swatches; the picture's colors are moved to the closest ones.",
+                learnedAt: Date(), hypothesisKey: "palette:\(swatches.count)", pointerBounds: bounds.insetBy(dx: -30, dy: -30),
+                isExact: true, swatches: swatches)
+            self.checkPalette(profile, analysis: analysis, token: t)
+        }
+    }
+
+    /// Clicks one swatch (not the last one clicked) and, when an indicator was found, checks
+    /// that it shows that swatch's color.
+    private func checkPalette(_ profile: ColorPickerProfile, analysis: PaletteLearner.Analysis, token t: Int) {
+        let swatches = profile.swatches ?? []
+        guard analysis.fromIndicator, swatches.count >= 2,
+              let test = swatches.first(where: { hypot($0.point.x - (paletteClicks.last?.x ?? 0), $0.point.y - (paletteClicks.last?.y ?? 0)) > 6 }) else {
+            return finishPaletteLesson(profile, checked: false)
+        }
+        prompt.hide()
+        hud.show(HUDContent(mode: .learnTrying, color: test.color, stepNumber: 0, stepCount: 0), canvasCG: target.canvas)
+        target.activate { [weak self] in
+            ModifierWait.whenReleased(quiet: pickerQuietPeriod, deadline: Date().addingTimeInterval(5)) { [weak self] in
+                guard let self, self.token == t else { return }
+                self.target.watchEscape(true)
+                self.replayer.run(profile.actions(for: test.color, previous: nil)) { [weak self] outcome in
+                    MainActor.assumeIsolated {
+                        guard let self, self.token == t else { return }
+                        self.target.watchEscape(false)
+                        Task { @MainActor [weak self] in
+                            try? await Task.sleep(nanoseconds: 400_000_000)
+                            guard let self, self.token == t else { return }
+                            self.hud.hide()
+                            let frame = try? await ScreenSampler.capture(self.paletteRect)
+                            let shown = frame.flatMap { PaletteLearner.indicatorColor(in: $0, indicator: analysis.indicator) }
+                            self.note("palette check: clicked \(test.color.hex), display shows \(shown?.hex ?? "nothing") (\(outcome))")
+                            if let shown, ColorMath.deltaE(shown, test.color) <= 8 {
+                                self.pickerColor = test.color
+                                self.finishPaletteLesson(profile, checked: true)
+                            } else {
+                                self.showResult(success: false, message: "DrawBot clicked the \(test.color.hex) swatch, but the color display then showed \(shown?.hex ?? "something else"). Start over and click each swatch once, slowly, without moving or scrolling the app.", swatches: swatches.map(\.color))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func finishPaletteLesson(_ profile: ColorPickerProfile, checked: Bool) {
+        candidate = profile
+        learned = profile
+        onLearned(profile, pickerColor)
+        note("palette learned (checked: \(checked))")
+        let colors = (profile.swatches ?? []).map(\.color)
+        let how = checked
+            ? "DrawBot clicked one of them and the app showed exactly that color."
+            : "The colors were read from the swatches themselves; check them below."
+        showResult(success: true, message: "Found \(colors.count) swatches. \(how)\n\nWhen drawing, DrawBot moves the picture's colors to the closest swatches and clicks the right one for each color. Keep the palette where it is; if it moves, learn it again.", swatches: colors)
     }
 }

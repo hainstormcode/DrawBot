@@ -17,10 +17,12 @@ enum PromptMode: Equatable {
     case learnVerify
     /// Color Learn finished (or gave up).
     case learnResult(success: Bool, message: String)
+    /// Color Learn, fixed palette: the user clicks every swatch while DrawBot watches the screen.
+    case learnPalette(recorded: String)
 
     var isLearn: Bool {
         switch self {
-        case .learnDemo, .learnVerify, .learnResult: return true
+        case .learnDemo, .learnVerify, .learnResult, .learnPalette: return true
         default: return false
         }
     }
@@ -44,6 +46,8 @@ struct PromptContent: Equatable {
     var note: String = ""
     /// Color mode: offer "Select for me" (a learned color picker exists).
     var canAutoSelect: Bool = false
+    /// Fixed-palette lessons: the swatch colors found so far / learned.
+    var swatches: [RGB] = []
 }
 
 enum PromptAction {
@@ -56,6 +60,7 @@ enum PromptAction {
     case redo           // Color Learn: start this demonstration (or the whole lesson) over
     case no             // Color Learn: the try didn't select the right color
     case retry          // Color Learn: try selecting the color again
+    case palette        // Color Learn: the app only has fixed swatches
 }
 
 /// Non-activating floating panel. Clicking its buttons never steals focus from the drawing app.
@@ -274,6 +279,21 @@ struct PromptView: View {
             Text("When the color is selected, press **Done** (⌃⌥⌘↩).")
                 .font(.callout).fixedSize(horizontal: false, vertical: true)
             Label(recorded, systemImage: "record.circle").font(.caption).foregroundColor(.red)
+            Text("Does \(content.appName) only offer a fixed set of color swatches? Click **Only swatches…** instead.")
+                .font(.caption).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
+        case .learnPalette(let recorded):
+            Text("Click **every color swatch** in **\(content.appName)** once, one after another, about a second apart.")
+                .font(.callout).fixedSize(horizontal: false, vertical: true)
+            Text("DrawBot watches the screen to see which color each swatch selects (for example the app's current-color display). When drawing, it moves the picture's colors to the closest swatches. Don't move or scroll the app while doing this.")
+                .font(.caption).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
+            if !content.note.isEmpty {
+                Text(content.note).font(.callout.weight(.semibold)).foregroundColor(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if !content.swatches.isEmpty { SwatchRow(colors: content.swatches) }
+            Text("When you've clicked them all, press **Done** (⌃⌥⌘↩).")
+                .font(.callout).fixedSize(horizontal: false, vertical: true)
+            Label(recorded, systemImage: "record.circle").font(.caption).foregroundColor(.red)
         case .learnVerify:
             Text("DrawBot just tried to select this color by itself. Is it selected in **\(content.appName)** now, with the color picker closed again (nothing covering the canvas)?")
                 .font(.callout).fixedSize(horizontal: false, vertical: true)
@@ -317,8 +337,18 @@ struct PromptView: View {
             HStack {
                 Button("Cancel", role: .cancel) { act(.stop) }
                 Spacer()
+                Button("Only swatches…") { act(.palette) }
+                    .help("The app only offers a fixed set of color swatches: click through them all instead")
                 Button("Start over") { act(.redo) }
                     .help("Forget what was recorded for this color")
+                Button("Done") { act(.proceed) }.keyboardShortcut(.defaultAction)
+            }
+        case .learnPalette:
+            HStack {
+                Button("Cancel", role: .cancel) { act(.stop) }
+                Spacer()
+                Button("Start over") { act(.redo) }
+                    .help("Forget the swatches clicked so far")
                 Button("Done") { act(.proceed) }.keyboardShortcut(.defaultAction)
             }
         case .learnVerify:
@@ -358,6 +388,7 @@ struct PromptView: View {
                 Text(success ? "Color picker learned" : "Couldn't learn the color picker").font(.title3.weight(.semibold))
             }
             Text(message).font(.callout).fixedSize(horizontal: false, vertical: true)
+            if !content.swatches.isEmpty { SwatchRow(colors: content.swatches) }
             HStack {
                 if !success {
                     Button("Cancel", role: .cancel) { act(.stop) }
@@ -384,6 +415,23 @@ struct PromptView: View {
             HStack {
                 Spacer()
                 Button("Close") { act(.close) }.keyboardShortcut(.defaultAction)
+            }
+        }
+    }
+}
+
+/// A wrapping row of small color chips (learned palette swatches).
+struct SwatchRow: View {
+    let colors: [RGB]
+
+    var body: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 18), spacing: 4)], alignment: .leading, spacing: 4) {
+            ForEach(Array(colors.enumerated()), id: \.offset) { _, c in
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color(nsColor: c.nsColor))
+                    .frame(width: 18, height: 18)
+                    .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.primary.opacity(0.25), lineWidth: 1))
+                    .help(c.hex)
             }
         }
     }

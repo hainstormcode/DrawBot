@@ -212,6 +212,28 @@ teaching.
 - Watching the keyboard needs full Accessibility access. Without it DrawBot can only learn
   clicks, and the panel tells you so.
 
+### Apps with only fixed swatches
+
+Some apps don't have a color picker at all, just a row of color buttons (PaintZ's toolbar
+palette, many kids' and pixel-art apps). DrawBot can learn those too:
+
+1. Start the lesson as usual, then click **Only swatches…** in DrawBot's prompt.
+2. Click **every swatch once**, about a second apart, then press **Done**.
+3. While you click, DrawBot takes a screenshot after each one and looks for the spot that
+   changes color every time: the app's current-color display (a color circle, primary and
+   secondary squares, a preview). The color shown there after each click is what that swatch
+   holds. If the app has no such display, DrawBot reads the swatches' own colors instead.
+4. DrawBot clicks one of the swatches itself and checks that the display shows the right color.
+
+When drawing, DrawBot first moves the picture's colors to the closest swatches (similar colors
+merge), so the preview shows exactly what will be painted. Then it clicks the right swatch
+before each color.
+
+This needs the **Screen Recording** permission (System Settings → Privacy & Security → Screen &
+System Audio Recording) and macOS 14 or later. DrawBot asks for it the first time; macOS
+usually wants DrawBot relaunched after you turn it on. DrawBot only looks at the drawing app's
+window, and only during the lesson and its check.
+
 ### Using it
 
 With Color Learn on, **Start Drawing** runs straight through: select color, draw, next color.
@@ -309,11 +331,9 @@ replayer against a fake event sink, so nothing moves your real mouse.
 
 - DrawBot draws in straight horizontal runs on a grid. It's a printer, not an artist.
 - Color Learn remembers screen positions. If your app's color picker moves, teach it again.
-- DrawBot can't see colors. If an app changes the value you type (PaintZ does this with hex
+- Except when learning a fixed palette, DrawBot doesn't look at the screen. If an app changes the value you type (PaintZ does this with hex
   codes), DrawBot types it the same way and gets the same wrong color. The check step catches
   this, and DrawBot then suggests teaching another way.
-- Pickers that only offer a fixed palette of swatches can't be learned. There's nothing
-  continuous to fit. Hex fields, sliders, squares, wheels and hue rings can.
 - DrawBot can't see whether a picker actually opened. It relies on timing, and on you closing
   the picker at the end of each demonstration.
 - A hue strip is assumed to have its red seam at the ends. PaintZ's sits 15° in from the
