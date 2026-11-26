@@ -123,6 +123,10 @@ Xcode works.
    rectangle's size and which app will receive the drawing.
 4. **Tune it** while watching the preview:
    - **Colors**: how many colors (1–32). Fewer means faster, and fewer color changes.
+     **1 makes a doodle**: the picture is split into a dark half and a light half, the light
+     half is treated as blank canvas and skipped, and only the dark half is drawn, like a
+     black pen on white paper. (The same happens when Color Learn learned an app with just
+     one preset color.)
    - **Merge similar**: colors closer together than this are merged into one. *Off* keeps
      every color apart; around 10 merges shades that are hard to tell apart. (The number is
      the CIE ΔE color difference.)

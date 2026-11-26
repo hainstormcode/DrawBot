@@ -215,6 +215,7 @@ struct ControlPanelView: View {
                             .monospacedDigit()
                             .frame(width: 56, alignment: .trailing)
                     }
+                    .help("How many colors to draw with. 1 makes a doodle: the picture is split into a dark and a light half, the light half is left as blank canvas, and only the dark half is drawn, like black pen on white paper.")
                 }
                 GridRow {
                     Text("Merge similar")

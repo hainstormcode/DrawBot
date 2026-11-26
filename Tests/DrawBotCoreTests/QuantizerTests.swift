@@ -113,7 +113,7 @@ final class QuantizerTests: XCTestCase {
 
     func testMaxColorsRespectedAndClamped() {
         let img = TestImages.photoLike(width: 120, height: 80)
-        for k in [1, 2, 5, 16, 64, 200] {
+        for k in [2, 5, 16, 64, 200] {
             let q = Quantizer.quantize(img, options: QuantizeOptions(maxColors: k, mergeDistance: 0))
             assertWellFormed(q, img)
             XCTAssertLessThanOrEqual(q.palette.count, min(64, k))
@@ -224,5 +224,53 @@ final class QuantizerTests: XCTestCase {
         #else
         XCTAssertLessThan(dt, 1)
         #endif
+    }
+
+    // MARK: One color = doodle
+
+    func testOneColorDrawsOnlyTheDarkInk() {
+        // Dark navy letter-ish bar on an off-white background, with a little noise.
+        let img = TestImages.rgba(width: 40, height: 30) { x, y in
+            let n = UInt8((x * 7 + y * 13) % 9)
+            if (10..<30).contains(x) && (12..<18).contains(y) { return (20 + n, 25 + n, 60 + n, 255) }
+            return (240 + n / 2, 238 + n / 2, 230 + n / 2, 255)
+        }
+        let q = Quantizer.quantize(img, options: QuantizeOptions(maxColors: 1))
+        XCTAssertEqual(q.palette.count, 1)
+        XCTAssertLessThan(Int(q.palette[0].r), 60)
+        XCTAssertEqual(q.counts, [20 * 6])
+        for y in 0..<30 {
+            for x in 0..<40 {
+                let inside = (10..<30).contains(x) && (12..<18).contains(y)
+                XCTAssertEqual(q.labels[y * 40 + x], inside ? 0 : -1, "(\(x),\(y))")
+            }
+        }
+    }
+
+    func testOneColorDropsTheLighterSideEvenWhenItIsSmaller() {
+        // White logo on black: the canvas is the white, so the black is what gets drawn.
+        let img = TestImages.rgba(width: 20, height: 20) { x, y in
+            (5..<8).contains(x) ? (255, 255, 255, 255) : (0, 0, 0, 255)
+        }
+        let q = Quantizer.quantize(img, options: QuantizeOptions(maxColors: 1))
+        XCTAssertEqual(q.palette, [RGB(r: 0, g: 0, b: 0)])
+        XCTAssertEqual(q.counts, [17 * 20])
+    }
+
+    func testOneColorKeepsASingleColorPicture() {
+        let img = TestImages.rgba(width: 8, height: 8) { x, _ in x < 4 ? (200, 30, 30, 255) : (0, 0, 0, 0) }
+        let q = Quantizer.quantize(img, options: QuantizeOptions(maxColors: 1))
+        XCTAssertEqual(q.palette, [RGB(r: 200, g: 30, b: 30)])
+        XCTAssertEqual(q.counts, [32])
+    }
+
+    func testOneColorOnAPhotoIsWellFormed() {
+        let img = TestImages.photoLike(width: 120, height: 80)
+        let q = Quantizer.quantize(img, options: QuantizeOptions(maxColors: 1))
+        XCTAssertEqual(q.palette.count, 1)
+        XCTAssertEqual(q.counts[0], q.labels.filter { $0 == 0 }.count)
+        XCTAssertGreaterThan(q.counts[0], 0)
+        XCTAssertLessThan(q.counts[0], 120 * 80)
+        XCTAssertTrue(q.labels.allSatisfy { $0 == 0 || $0 == -1 })
     }
 }

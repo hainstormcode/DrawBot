@@ -32,7 +32,31 @@ public enum Quantizer {
     ///
     /// If the opaque pixels contain at most `maxColors` distinct colors they are used exactly
     /// (no k-means), in order of first appearance (before merging).
+    ///
+    /// With `maxColors == 1` the result is a doodle: the image is split into two colors and the
+    /// lighter one becomes transparent, so only the darker "ink" is drawn (like black on white
+    /// paper). See `ink(_:options:)`.
     public static func quantize(_ image: RGBAImage, options: QuantizeOptions) -> QuantizedImage {
+        if options.maxColors <= 1 { return ink(image, options: options) }
+        return quantizeColors(image, options: options)
+    }
+
+    /// One-color doodle: two colors without merging, then the lighter (by CIELAB L) is dropped.
+    /// A picture that really is a single color keeps it.
+    public static func ink(_ image: RGBAImage, options: QuantizeOptions) -> QuantizedImage {
+        var two = options
+        two.maxColors = 2
+        two.mergeDistance = 0
+        let q = quantizeColors(image, options: two)
+        guard q.palette.count == 2 else { return q }
+        let light = ColorMath.lab(q.palette[0]).L >= ColorMath.lab(q.palette[1]).L ? 0 : 1
+        let keep = 1 - light
+        let labels = q.labels.map { $0 == Int32(keep) ? Int32(0) : Int32(-1) }
+        return QuantizedImage(width: q.width, height: q.height, labels: labels,
+                              palette: [q.palette[keep]], counts: [q.counts[keep]])
+    }
+
+    private static func quantizeColors(_ image: RGBAImage, options: QuantizeOptions) -> QuantizedImage {
         let w = image.width, h = image.height
         let n = w * h
         let k = min(64, max(1, options.maxColors))

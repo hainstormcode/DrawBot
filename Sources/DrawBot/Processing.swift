@@ -75,7 +75,10 @@ final class ImageProcessor: @unchecked Sendable {
         let layout = key.layout
         let raster = ImageLoader.rasterize(image, width: layout.columns, height: layout.rows)
         if stale() { return nil }
-        var q = Quantizer.quantize(raster, options: key.options)
+        var options = key.options
+        // Only one preset color to choose from: draw it as a doodle too.
+        if key.snapPalette?.count == 1 { options.maxColors = 1 }
+        var q = Quantizer.quantize(raster, options: options)
         if let palette = key.snapPalette { q = Quantizer.snap(q, to: palette) }
         if stale() { return nil }
         let preview = ImageLoader.makeCGImage(Quantizer.previewImage(q))
