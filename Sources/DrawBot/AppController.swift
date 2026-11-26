@@ -217,12 +217,35 @@ final class AppController: ObservableObject {
         } else {
             let strokes = drawable.reduce(0) { $0 + (result.strokes.indices.contains($1) ? result.strokes[$1].count : 0) }
             let est = result.estimates[settings.speed] ?? []
-            let t = drawable.reduce(0.0) { $0 + (est.indices.contains($1) ? est[$1] : 0) }
+            var t = drawable.reduce(0.0) { $0 + (est.indices.contains($1) ? est[$1] : 0) }
+            let order = ColorMath.order(result.quantized, by: settings.order).filter { drawable.contains($0) }
+            t += selectionTime(for: order.map { result.quantized.palette[$0] })
             parts.append("\(strokes) strokes")
-            parts.append("≈ \(TimeEstimator.format(t))")
+            let automatic = settings.colorSelection == .automatic && currentProfile != nil
+            parts.append("≈ \(TimeEstimator.format(t))" + (automatic || order.isEmpty ? "" : " + your color picks"))
         }
         if isProcessing { parts.append("updating…") }
         return parts.joined(separator: " · ")
+    }
+
+    /// Time spent around drawing the colors, in this order: the countdowns and, when DrawBot
+    /// selects colors itself, each selection (settling, the quiet wait, and the replayed input
+    /// at the chosen Color selection speed).
+    func selectionTime(for colors: [RGB]) -> TimeInterval {
+        let countdown = Double(settings.countdownSeconds)
+        guard settings.colorSelection == .automatic, let profile = currentProfile else {
+            return countdown * Double(colors.count)
+        }
+        let speed = settings.selectionSpeed
+        var total = 0.0
+        var previous = pickerColor[profile.appKey]
+        for (i, c) in colors.enumerated() {
+            total += speed.settle + speed.quietPeriod + 0.05   // + activation and canvas check
+            total += InputReplayer.estimatedDuration(of: profile.actions(for: c, previous: previous), pace: speed.pace)
+            if i == 0 || speed.countdownEveryColor { total += countdown }
+            previous = c
+        }
+        return total
     }
 
     var canvasDescription: String? {
@@ -1093,9 +1116,14 @@ final class AppController: ObservableObject {
         }
     }
 
+    /// How long a window may cover the canvas before DrawBot reports it. A color picker that was
+    /// just used (popup, dialog) often takes a moment to close or finish its animation.
+    static let obstructionPatience: TimeInterval = 2.5
+    static let obstructionRecheckInterval: TimeInterval = 0.25
+
     private func checkCanvasThenCountdown(step: Int, resumeIndex: Int, checkObstructions: Bool, token: Int,
-                                          skipCountdown: Bool = false) {
-        guard let plan, case .preparing = phase else { return }
+                                          skipCountdown: Bool = false, since: Date = Date()) {
+        guard passToken == token, let plan, case .preparing = phase else { return }
         let targetPID: pid_t?
         switch target {
         case .app(let app): targetPID = app.processIdentifier
@@ -1105,6 +1133,16 @@ final class AppController: ObservableObject {
         }
         if checkObstructions, let targetPID {
             let obstructions = WindowInspector.obstructions(of: plan.canvas, targetPID: targetPID)
+            if !obstructions.isEmpty, Date().timeIntervalSince(since) < Self.obstructionPatience {
+                // Probably closing: look again shortly.
+                DispatchQueue.main.asyncAfter(deadline: .now() + Self.obstructionRecheckInterval) { [weak self] in
+                    MainActor.assumeIsolated {
+                        self?.checkCanvasThenCountdown(step: step, resumeIndex: resumeIndex, checkObstructions: true,
+                                                       token: token, skipCountdown: skipCountdown, since: since)
+                    }
+                }
+                return
+            }
             if !obstructions.isEmpty {
                 var names: [String] = []
                 for o in obstructions {

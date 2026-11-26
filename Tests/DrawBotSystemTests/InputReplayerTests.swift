@@ -72,6 +72,21 @@ final class InputReplayerTests: XCTestCase {
         XCTAssertEqual(quick.mouse.count, normal.mouse.count, "same input, only faster")
     }
 
+    func testEstimatedDurationMatchesTheReplay() {
+        let actions: [ReplayAction] = [
+            .click(at: CGPoint(x: 10, y: 10), button: .left, count: 3, modifiers: []),
+            .wait(0.3),
+            .key(KeyStroke(keyCode: VirtualKey.returnKey, characters: "\r", modifiers: [])),
+            .drag(from: CGPoint(x: 100, y: 100), to: CGPoint(x: 160, y: 120), button: .left, modifiers: []),
+        ]
+        for pace in [0.25, 1, 1.8] {
+            let sink = RecordingReplaySink()
+            XCTAssertEqual(run(actions, sink: sink, pace: pace), .completed)
+            XCTAssertEqual(InputReplayer.estimatedDuration(of: actions, pace: pace), sink.slept, accuracy: 1e-9)
+        }
+        XCTAssertGreaterThan(InputReplayer.estimatedDuration(of: actions), 0.3)
+    }
+
     func testDragApproachesTheEndInFineSteps() {
         let sink = RecordingReplaySink()
         XCTAssertEqual(run([.drag(from: CGPoint(x: 0, y: 0), to: CGPoint(x: 40, y: 0), button: .left, modifiers: [])], sink: sink), .completed)

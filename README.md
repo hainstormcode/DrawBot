@@ -59,7 +59,9 @@ colors while it watches. From then on it selects every color itself.
    lines; at Normal speed the thin lines took 2.1 s instead of 6.2 s.
 5. **The strokes are drawn.** DrawBot posts synthetic mouse events, the same kind macOS
    accessibility tools use, along every stroke at a speed you choose. Before each color it
-   brings the drawing app to the front and checks that no window covers the canvas.
+   brings the drawing app to the front and checks that no window covers the canvas. A window
+   that is still there gets 2.5 seconds to go away (a color picker that was just used is often
+   still closing) before DrawBot says something is in the way.
 
 By default the light colors go down first and the dark ones last, so dark details end up on
 top and hide any bleed from the lighter strokes.
@@ -128,6 +130,9 @@ Xcode works.
      slider*; on a Retina screen many apps want twice that number in pixels.
    - **Speed**: how fast DrawBot moves. Every speed draws the whole picture; *Careful* is only
      worth it for apps that lag badly.
+   - The time estimate under the preview covers everything: the strokes, the countdowns, and,
+     when Color Learn selects the colors, each selection at the chosen speed. When you select
+     colors yourself, it says "+ your color picks".
    - **Color selection**: how quickly DrawBot selects each color when Color Learn selects
      colors for you. *Normal* waits until nothing has been clicked for 1.5 s, then replays
      your picker input at the pace you used when teaching it. *Fast* and *Ludicrous* cut those
@@ -311,7 +316,8 @@ hotkeys work.
 - **Nothing happens, or "macOS ignored DrawBot's mouse events".** The Accessibility entry is
   stale; see [the ad-hoc signing trap](#granting-accessibility-and-the-ad-hoc-signing-trap).
   Remove the row with **–**, grant it again, and relaunch.
-- **"Something from <App> is covering the canvas."** Move that window or palette away and click
+- **"Something from <App> is covering the canvas."** DrawBot already waited 2.5 seconds for it
+  to go away, so it is really there. Move that window or palette away and click
   *Check again*, or *Draw anyway* if you know better.
 - **Strokes land in the wrong place.** The canvas moved or scrolled after you selected it, or
   the zoom changed. Select the canvas again.

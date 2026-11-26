@@ -154,6 +154,15 @@ public final class InputReplayer {
         thread.start()
     }
 
+    /// How long replaying `actions` at `pace` takes: the replayer itself runs against a sink
+    /// that only adds up its pauses, so the estimate can't drift from what it really does.
+    public static func estimatedDuration(of actions: [ReplayAction], pace: Double = 1) -> TimeInterval {
+        let sink = TimingSink()
+        let p = pace.isFinite && pace > 0 ? pace : 1
+        _ = ReplayWorker(sink: sink, detectMove: false, pace: p, stopRequested: { nil }).run(actions)
+        return sink.total
+    }
+
     /// Thread-safe.
     public func requestStop(reason: String = "Stopped") {
         lock.lock()
@@ -315,4 +324,17 @@ final class ReplayWorker {
         }
         throw ReplayInterrupt(reason: DrawingEngine.Reason.mouseMoved)
     }
+}
+
+/// Adds up the pauses of a replay without posting anything (see `estimatedDuration`).
+private final class TimingSink: ReplayEventSink {
+    var total: TimeInterval = 0
+    func postMouse(_ type: CGEventType, at p: CGPoint, button: PointerButton, clickState: Int64, modifiers: KeyModifiers,
+                   delta: (Int64, Int64)) {}
+    func postKey(_ stroke: KeyStroke, down: Bool) {}
+    func setClipboard(_ s: String) {}
+    func cursorLocation() -> CGPoint? { nil }
+    func escapePressed() -> Bool { false }
+    func isTrusted() -> Bool { true }
+    func sleep(_ seconds: TimeInterval) { total += seconds }
 }
