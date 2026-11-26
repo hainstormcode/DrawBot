@@ -2,6 +2,61 @@ import AppKit
 import DrawBotCore
 
 /// How each color gets selected in the drawing app.
+/// How quickly Color Learn selects each color while drawing.
+enum SelectionSpeed: String, Codable, CaseIterable {
+    case slow, normal, fast, ludicrous
+
+    var displayName: String {
+        switch self {
+        case .slow: return "Slow (laggy apps)"
+        case .normal: return "Normal"
+        case .fast: return "Fast"
+        case .ludicrous: return "Ludicrous"
+        }
+    }
+
+    /// Multiplies the pauses between the replayed clicks and keystrokes, and the waits learned
+    /// from the user's own pace (e.g. while a dialog opens).
+    var pace: Double {
+        switch self {
+        case .slow: return 1.8
+        case .normal: return 1
+        case .fast: return 0.5
+        case .ludicrous: return 0.25
+        }
+    }
+
+    /// How long there must have been no click or key press before DrawBot touches the picker
+    /// (DrawBot's own drawing counts: apps may still be busy with the last stroke).
+    var quietPeriod: TimeInterval {
+        switch self {
+        case .slow: return 2
+        case .normal: return pickerQuietPeriod
+        case .fast: return 0.5
+        case .ludicrous: return 0.15
+        }
+    }
+
+    /// Pause after bringing the drawing app to the front.
+    var settle: TimeInterval {
+        switch self {
+        case .slow: return 0.4
+        case .normal: return 0.25
+        case .fast: return 0.1
+        case .ludicrous: return 0.03
+        }
+    }
+
+    /// Whether the countdown runs before every automatically selected color, or only before the
+    /// first one (after that, nobody needs time to take their hands off the mouse).
+    var countdownEveryColor: Bool {
+        switch self {
+        case .slow, .normal: return true
+        case .fast, .ludicrous: return false
+        }
+    }
+}
+
 enum ColorSelectionMode: String, Codable, CaseIterable {
     /// DrawBot shows the color and the user selects it, then presses Continue.
     case manual
@@ -29,6 +84,7 @@ struct DrawSettings: Codable, Equatable {
     var pauseOnMouseMove: Bool = true
     var skipNearWhite: Bool = true
     var colorSelection: ColorSelectionMode = .manual
+    var selectionSpeed: SelectionSpeed = .normal
 
     static let colorRange = 1...32
     static let mergeRange = 0.0...30.0
@@ -50,6 +106,7 @@ struct DrawSettings: Codable, Equatable {
         pauseOnMouseMove = (try? c.decodeIfPresent(Bool.self, forKey: .pauseOnMouseMove)) ?? d.pauseOnMouseMove
         skipNearWhite = (try? c.decodeIfPresent(Bool.self, forKey: .skipNearWhite)) ?? d.skipNearWhite
         colorSelection = (try? c.decodeIfPresent(ColorSelectionMode.self, forKey: .colorSelection)) ?? d.colorSelection
+        selectionSpeed = (try? c.decodeIfPresent(SelectionSpeed.self, forKey: .selectionSpeed)) ?? d.selectionSpeed
         self = clamped()
     }
 

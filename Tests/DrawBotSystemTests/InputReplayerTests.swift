@@ -20,12 +20,14 @@ final class RecordingReplaySink: ReplayEventSink {
     func cursorLocation() -> CGPoint? { cursorOverride ?? mouse.last?.1 }
     func escapePressed() -> Bool { escape }
     func isTrusted() -> Bool { true }
-    func sleep(_ seconds: TimeInterval) {}
+    var slept: TimeInterval = 0
+    func sleep(_ seconds: TimeInterval) { slept += seconds }
 }
 
 final class InputReplayerTests: XCTestCase {
-    func run(_ actions: [ReplayAction], sink: RecordingReplaySink) -> InputReplayer.Outcome {
+    func run(_ actions: [ReplayAction], sink: RecordingReplaySink, pace: Double = 1) -> InputReplayer.Outcome {
         let replayer = InputReplayer(sink: { sink })
+        replayer.pace = pace
         let done = expectation(description: "done")
         var outcome: InputReplayer.Outcome?
         replayer.run(actions) { outcome = $0; done.fulfill() }
@@ -52,6 +54,22 @@ final class InputReplayerTests: XCTestCase {
         XCTAssertTrue(types.contains(.leftMouseDragged))
         XCTAssertEqual(sink.clipboard, ["ABCDEF"])
         XCTAssertEqual(sink.keys.count, 2)
+    }
+
+    func testPaceScalesEveryPause() {
+        let actions: [ReplayAction] = [
+            .click(at: CGPoint(x: 10, y: 10), button: .left, count: 1, modifiers: []),
+            .wait(0.5),
+            .key(KeyStroke(keyCode: VirtualKey.returnKey, characters: "\r", modifiers: [])),
+            .drag(from: CGPoint(x: 100, y: 100), to: CGPoint(x: 130, y: 100), button: .left, modifiers: []),
+        ]
+        let normal = RecordingReplaySink(), quick = RecordingReplaySink(), slow = RecordingReplaySink()
+        XCTAssertEqual(run(actions, sink: normal), .completed)
+        XCTAssertEqual(run(actions, sink: quick, pace: 0.25), .completed)
+        XCTAssertEqual(run(actions, sink: slow, pace: 1.8), .completed)
+        XCTAssertEqual(quick.slept, normal.slept * 0.25, accuracy: 0.02)
+        XCTAssertEqual(slow.slept, normal.slept * 1.8, accuracy: 0.03)
+        XCTAssertEqual(quick.mouse.count, normal.mouse.count, "same input, only faster")
     }
 
     func testDragApproachesTheEndInFineSteps() {

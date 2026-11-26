@@ -249,6 +249,15 @@ struct ControlPanelView: View {
                     .labelsHidden()
                 }
                 GridRow {
+                    Text("Color selection")
+                    Picker("", selection: $controller.settings.selectionSpeed) {
+                        ForEach(SelectionSpeed.allCases, id: \.self) { Text($0.displayName).tag($0) }
+                    }
+                    .labelsHidden()
+                    .disabled(controller.settings.colorSelection != .automatic)
+                    .help("How quickly DrawBot selects each color when it selects colors automatically: the pauses before and between its clicks and keystrokes. Fast and Ludicrous also skip the countdown after the first color. If colors come out wrong (the app needs time to open its picker), go slower.")
+                }
+                GridRow {
                     Text("Strokes")
                     Picker("", selection: $controller.settings.strokeStyle) {
                         ForEach(StrokeStyle.allCases, id: \.self) { Text($0.displayName).tag($0) }

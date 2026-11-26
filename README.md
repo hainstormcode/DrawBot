@@ -128,6 +128,13 @@ Xcode works.
      slider*; on a Retina screen many apps want twice that number in pixels.
    - **Speed**: how fast DrawBot moves. Every speed draws the whole picture; *Careful* is only
      worth it for apps that lag badly.
+   - **Color selection**: how quickly DrawBot selects each color when Color Learn selects
+     colors for you. *Normal* waits until nothing has been clicked for 1.5 s, then replays
+     your picker input at the pace you used when teaching it. *Fast* and *Ludicrous* cut those
+     pauses to a half and a quarter, and skip the countdown after the first color; on a
+     drawing with many colors that saves several seconds per color. *Slow* is for apps that
+     need longer to open their picker. If colors come out wrong at a fast setting, the app
+     needs more time: go one step slower.
    - **Strokes**: *A\* paths* (the default, usually faster) or *Top to bottom*. See
      [How it works](#how-it-works).
    - **Color order**, **Countdown**, **Pause if I move the mouse**, and **Skip near-white

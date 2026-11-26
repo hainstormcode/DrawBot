@@ -37,6 +37,7 @@ struct RunPlan {
     let speed: SpeedSettings
     let pauseOnMouseMove: Bool
     let countdownSeconds: Int
+    let selectionSpeed: SelectionSpeed
     let penSize: Double
     let startedAt: Date
     /// The learned color picker of the target app (Color Learn), if any.
@@ -719,8 +720,9 @@ final class AppController: ObservableObject {
         hideOwnWindowsOverlappingCanvas(plan.canvas)
         if let b = profile.pointerBounds { hideOwnWindowsOverlappingCanvas(b) }
         let color = plan.steps[step].color
+        let pace = plan.selectionSpeed
         activateTarget { [weak self] in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + pace.settle) {
                 MainActor.assumeIsolated {
                     guard let self, self.passToken == token else { return }
                     // Never replay picker clicks into whatever other app happens to be in front.
@@ -732,9 +734,9 @@ final class AppController: ObservableObject {
                         self.showPrompt()
                         return
                     }
-                    ModifierWait.whenReleased(quiet: pickerQuietPeriod, deadline: Date().addingTimeInterval(5)) { [weak self] in
+                    ModifierWait.whenReleased(quiet: pace.quietPeriod, deadline: Date().addingTimeInterval(5)) { [weak self] in
                         guard let self, self.passToken == token else { return }
-                        self.replayer.careful = plan.speed == SpeedPreset.careful.settings
+                        self.replayer.pace = pace.pace
                         self.replayer.stopOnUserMouseMove = plan.pauseOnMouseMove
                         let actions = profile.actions(for: color, previous: self.pickerColor[profile.appKey])
                         self.replayer.run(actions) { [weak self] outcome in
@@ -755,7 +757,10 @@ final class AppController: ObservableObject {
             pickerColor[key] = color
             phase = .preparing(step: step, resumeIndex: 0)
             showHUD()
-            checkCanvasThenCountdown(step: step, resumeIndex: 0, checkObstructions: true, token: token)
+            // After the first color nobody needs time to let go of the mouse, unless the user
+            // wants every selection paced like before (Slow / Normal).
+            let skip = step > 0 && !(plan?.selectionSpeed.countdownEveryColor ?? true)
+            checkCanvasThenCountdown(step: step, resumeIndex: 0, checkObstructions: true, token: token, skipCountdown: skip)
         case .stopped(let reason):
             pickerColor[key] = nil
             unregisterEsc()
@@ -961,6 +966,7 @@ final class AppController: ObservableObject {
         let fps = ScreenUtil.screen(forCanvas: canvas)?.maximumFramesPerSecond ?? 60
         plan = RunPlan(canvas: canvas, steps: steps, speed: settings.speed.settings.adapted(toRefreshRate: fps),
                        pauseOnMouseMove: settings.pauseOnMouseMove, countdownSeconds: settings.countdownSeconds,
+                       selectionSpeed: settings.selectionSpeed,
                        penSize: settings.penSize, startedAt: Date(),
                        profile: profile, automatic: automatic && profile != nil)
         statusMessage = nil
@@ -1087,7 +1093,8 @@ final class AppController: ObservableObject {
         }
     }
 
-    private func checkCanvasThenCountdown(step: Int, resumeIndex: Int, checkObstructions: Bool, token: Int) {
+    private func checkCanvasThenCountdown(step: Int, resumeIndex: Int, checkObstructions: Bool, token: Int,
+                                          skipCountdown: Bool = false) {
         guard let plan, case .preparing = phase else { return }
         let targetPID: pid_t?
         switch target {
@@ -1112,7 +1119,7 @@ final class AppController: ObservableObject {
                 return
             }
         }
-        countdown(step: step, resumeIndex: resumeIndex, remaining: plan.countdownSeconds, token: token)
+        countdown(step: step, resumeIndex: resumeIndex, remaining: skipCountdown ? 0 : plan.countdownSeconds, token: token)
     }
 
     private func countdown(step: Int, resumeIndex: Int, remaining: Int, token: Int) {

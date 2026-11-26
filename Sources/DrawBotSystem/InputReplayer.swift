@@ -110,8 +110,14 @@ public final class InputReplayer {
 
     public private(set) var isRunning = false
     public var stopOnUserMouseMove = true
+    /// Multiplies every pause between replayed events (and every learned wait): 1 is normal,
+    /// above 1 slower (laggy apps), below 1 faster.
+    public var pace: Double = 1
     /// Slower pacing for laggy apps.
-    public var careful = false
+    public var careful: Bool {
+        get { pace > 1 }
+        set { pace = newValue ? 1.8 : 1 }
+    }
 
     private let makeSink: () -> ReplayEventSink
     private let lock = NSLock()
@@ -131,7 +137,7 @@ public final class InputReplayer {
         lock.lock(); stopReason = nil; lock.unlock()
         let sink = makeSink()
         let detectMove = stopOnUserMouseMove
-        let pace = careful ? 1.8 : 1.0
+        let pace = self.pace.isFinite && self.pace > 0 ? self.pace : 1.0
         let thread = Thread { [self] in
             let worker = ReplayWorker(sink: sink, detectMove: detectMove, pace: pace, stopRequested: { [self] in
                 lock.lock(); defer { lock.unlock() }
