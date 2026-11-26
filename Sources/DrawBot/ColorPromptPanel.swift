@@ -17,7 +17,7 @@ enum PromptMode: Equatable {
     case learnVerify
     /// Color Learn finished (or gave up).
     case learnResult(success: Bool, message: String)
-    /// Color Learn, fixed palette: the user clicks every swatch while DrawBot watches the screen.
+    /// Color Learn, preset colors: the user clicks every color button; DrawBot reads each clicked spot.
     case learnPalette(recorded: String)
 
     var isLearn: Bool {
@@ -300,12 +300,12 @@ struct PromptView: View {
             Text("When the color is selected, press **Done** (⌃⌥⌘↩).")
                 .font(.callout).fixedSize(horizontal: false, vertical: true)
             Label(recorded, systemImage: "record.circle").font(.caption).foregroundColor(.red)
-            Text("Does \(content.appName) only offer a fixed set of color swatches? Click **Only swatches…** instead.")
+            Text("No color picker in \(content.appName), just a few preset color buttons? Click **Preset colors…** instead.")
                 .font(.caption).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
         case .learnPalette(let recorded):
-            Text("Click **every color swatch** in **\(content.appName)** once, one after another, about a second apart.")
+            Text("Click **every preset color button** in **\(content.appName)** once, one after another, about a second apart. Click near the middle of each.")
                 .font(.callout).fixedSize(horizontal: false, vertical: true)
-            Text("DrawBot watches the screen to see which color each swatch selects (for example the app's current-color display). When drawing, it moves the picture's colors to the closest swatches. Don't move or scroll the app while doing this.")
+            Text("DrawBot reads each button's color from the spot you click. When drawing, it moves the picture's colors to the closest preset colors. Don't move or scroll the app while doing this.")
                 .font(.caption).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
             if !content.note.isEmpty {
                 Text(content.note).font(.callout.weight(.semibold)).foregroundColor(.orange)
@@ -358,8 +358,8 @@ struct PromptView: View {
             HStack {
                 Button("Cancel", role: .cancel) { act(.stop) }
                 Spacer()
-                Button("Only swatches…") { act(.palette) }
-                    .help("The app only offers a fixed set of color swatches: click through them all instead")
+                Button("Preset colors…") { act(.palette) }
+                    .help("The app has no color picker, only a few preset color buttons: click each of them once instead")
                 Button("Start over") { act(.redo) }
                     .help("Forget what was recorded for this color")
                 Button("Done") { act(.proceed) }.keyboardShortcut(.defaultAction)
@@ -369,7 +369,7 @@ struct PromptView: View {
                 Button("Cancel", role: .cancel) { act(.stop) }
                 Spacer()
                 Button("Start over") { act(.redo) }
-                    .help("Forget the swatches clicked so far")
+                    .help("Forget the color buttons clicked so far")
                 Button("Done") { act(.proceed) }.keyboardShortcut(.defaultAction)
             }
         case .learnVerify:

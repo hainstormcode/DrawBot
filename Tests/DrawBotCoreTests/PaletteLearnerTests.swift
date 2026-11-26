@@ -59,28 +59,40 @@ final class PaletteLearnerTests: XCTestCase {
         return RGBAImage(width: w, height: h, data: d)
     }
 
-    func testFindsColorsFromTheCurrentColorIndicator() throws {
+    func testReadsEachColorFromTheClickedSpot() throws {
+        // The app's current-color display shows a tinted version of the selection; DrawBot must
+        // not be fooled by it, nor by the changing hex label.
         let order = Array(swatchColors.indices)
         let analysis = try XCTUnwrap(PaletteLearner.analyze(baseline: frame(selected: nil),
                                                             frames: order.map { frame(selected: $0) },
                                                             clicks: order.map(swatchCenter)))
-        XCTAssertTrue(analysis.fromIndicator)
         XCTAssertEqual(analysis.colors, order.map { swatchColors[$0] })
-        // The indicator is the ring around (45,45), not the hex label or a swatch.
-        let xs = analysis.indicator.map { $0 % w }, ys = analysis.indicator.map { $0 / w }
-        XCTAssertLessThan(xs.max()!, 70)
-        XCTAssertLessThan(ys.max()!, 70)
-        // It can read a later selection.
-        XCTAssertEqual(PaletteLearner.indicatorColor(in: frame(selected: 4), indicator: analysis.indicator), swatchColors[4])
     }
 
-    func testFallsBackToTheSwatchesThemselvesWithoutAnIndicator() throws {
-        let order = [3, 8, 0, 10, 6]
-        let analysis = try XCTUnwrap(PaletteLearner.analyze(baseline: frame(selected: nil, indicator: false),
-                                                            frames: order.map { frame(selected: $0, indicator: false) },
-                                                            clicks: order.map(swatchCenter)))
-        XCTAssertFalse(analysis.fromIndicator)
-        XCTAssertEqual(analysis.colors, order.map { swatchColors[$0] })
+    func testClicksOffCenterAndOnACheckMarkStillReadTheButton() {
+        var d = blank()
+        ring(&d, center: CGPoint(x: 50, y: 40), inner: 0, outer: 12, RGB(r: 41, g: 98, b: 255))
+        // A white check mark across the middle (as a selected button might show).
+        for k in -4...4 { put(&d, 50 + k, 40 + abs(k) / 2, RGB(r: 255, g: 255, b: 255)) }
+        let img = RGBAImage(width: w, height: h, data: d)
+        XCTAssertEqual(PaletteLearner.clickedColor(in: img, at: CGPoint(x: 50, y: 40), strict: false), RGB(r: 41, g: 98, b: 255))
+        // Near the edge: the button, not the background around it.
+        XCTAssertEqual(PaletteLearner.clickedColor(in: img, at: CGPoint(x: 60, y: 40), strict: false), RGB(r: 41, g: 98, b: 255))
+    }
+
+    func testFallsBackToTheFrameBeforeTheClickWhenTheStartIsUnclear() throws {
+        // In the first screenshot the second button is covered by stripes (e.g. a tooltip).
+        var d = frame(selected: nil).data
+        let c = swatchCenter(1)
+        for y in Int(c.y) - 4...Int(c.y) + 4 {
+            for x in Int(c.x) - 4...Int(c.x) + 4 {
+                put(&d, x, y, (x + y) % 3 == 0 ? RGB(r: 255, g: 255, b: 255) : (x + y) % 3 == 1 ? RGB(r: 0, g: 200, b: 0) : RGB(r: 200, g: 0, b: 200))
+            }
+        }
+        let baseline = RGBAImage(width: w, height: h, data: d)
+        let analysis = try XCTUnwrap(PaletteLearner.analyze(baseline: baseline, frames: [frame(selected: 0), frame(selected: 1)],
+                                                            clicks: [swatchCenter(0), swatchCenter(1)]))
+        XCTAssertEqual(analysis.colors, [swatchColors[0], swatchColors[1]])
     }
 
     func testSwatchesDeduplicateRepeatedClicks() {
