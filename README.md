@@ -3,6 +3,9 @@
 DrawBot is a small macOS menu-bar app that paints a picture for you, in any drawing app, by
 moving the real mouse cursor.
 
+There is also a Windows port in [`windows/`](windows/README.md), built from the same design with the
+same features.
+
 There's no plugin and no file import. You choose an image, drag a rectangle over the canvas of
 whatever you're drawing in (Photoshop, Krita, Affinity, Pixelmator, a browser paint app, even
 Preview's markup tools), and DrawBot draws the image there one color at a time. To the drawing
@@ -387,4 +390,5 @@ replayer against a fake event sink, so nothing moves your real mouse.
 - A hue strip is assumed to have its red seam at the ends. PaintZ's sits 15° in from the
   bottom, so in PaintZ, reds within about 15° of pure red come out slightly orange when the
   picker was taught by clicking. Teach it by typing values to get them exact.
-- macOS only. It relies on Quartz event posting and the macOS window list.
+- This app is macOS only: it relies on Quartz event posting and the macOS window list. For
+  Windows, see [`windows/`](windows/README.md).
